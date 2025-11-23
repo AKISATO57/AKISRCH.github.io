@@ -543,8 +543,12 @@
                 } else {
                     // 过滤匹配项
                     const historyMatches = historyCandidates.filter(h => h.value.toLowerCase().startsWith(q));
-                    // 下拉列表：标题包含或 URL 包含均可
-                    const linkMatches = linkCandidates.filter(l => l.title.toLowerCase().includes(q) || l.url.toLowerCase().includes(q));
+                    // 下拉列表：标题包含或 URL 包含
+                    // 修复：忽略 http:// 和 https:// 前缀，防止输入 'p' 匹配到 'https'
+                    const linkMatches = linkCandidates.filter(l => {
+                        const cleanUrl = l.url.replace(/^https?:\/\//, '').toLowerCase();
+                        return l.title.toLowerCase().includes(q) || cleanUrl.includes(q);
+                    });
                     
                     combined = [...historyMatches, ...linkMatches].sort((a, b) => b.score - a.score).slice(0, 30);
                 }
