@@ -229,7 +229,7 @@
             Search, Plus, Trash2, Settings, X, Moon, Sun, 
             LayoutGrid, Image as ImageIcon, RotateCcw,
             Check, Sparkles, Clock, Palette, Sliders, GripHorizontal, Edit3, Upload, Link as LinkIcon,
-            Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet
+            Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet, Eye, User
         } from 'lucide-react';
 
         // --- 全局动画参数 ---
@@ -406,6 +406,45 @@
                 React.createElement("button", { ref: buttonRef, onClick: handleOpen, className: `color-trigger ${!color ? 'is-transparent' : ''}`, style: { background: color || 'transparent' } }, !color && React.createElement("span", { className: "default-text-overlay text-[8px] text-slate-400 font-bold absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px]" }, "默认")),
                 React.createElement(AnimatePresence, null, isOpen && React.createElement(ColorPickerPopover, { color: color || '', onChange: onChange, onClose: () => setIsOpen(false), triggerRect: rect })),
                 isOpen && createPortal(React.createElement("div", { className: "fixed inset-0 z-[9998] bg-transparent", onClick: () => setIsOpen(false) }), document.body)
+            );
+        };
+
+        // --- 不蒜子统计组件 (Busuanzi Stats) ---
+        const BusuanziStats = () => {
+            useEffect(() => {
+                // 强制重新加载不蒜子脚本，以触发DOM扫描
+                const scriptUrl = "//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js";
+                
+                // 移除旧脚本（如果存在）
+                const oldScript = document.querySelector(`script[src="${scriptUrl}"]`);
+                if (oldScript) oldScript.remove();
+
+                const script = document.createElement('script');
+                script.src = scriptUrl;
+                script.async = true;
+                script.referrerPolicy = "no-referrer-when-downgrade"; // 兼容性修复
+                document.body.appendChild(script);
+
+                return () => {
+                    // 可选清理
+                };
+            }, []);
+
+            return React.createElement("div", { className: "mt-4 flex flex-col items-center gap-2 w-full" },
+                React.createElement("div", { className: "w-full h-px bg-slate-200 dark:bg-slate-700/50" }), 
+                React.createElement("div", { className: "flex items-center gap-4 text-[10px] text-slate-400 dark:text-slate-500 font-bold select-none pt-2 opacity-80 hover:opacity-100 transition-opacity" },
+                    React.createElement("span", { id: "busuanzi_container_site_pv", className: "flex items-center gap-1", style: { display: 'none' } },
+                        React.createElement(Eye, { size: 12 }), 
+                        "访问量",
+                        React.createElement("span", { id: "busuanzi_value_site_pv", className: "font-mono text-slate-600 dark:text-slate-400" })
+                    ),
+                    React.createElement("span", { className: "w-px h-3 bg-slate-300 dark:bg-slate-700" }),
+                    React.createElement("span", { id: "busuanzi_container_site_uv", className: "flex items-center gap-1", style: { display: 'none' } },
+                        React.createElement(User, { size: 12 }), 
+                        "访客数",
+                        React.createElement("span", { id: "busuanzi_value_site_uv", className: "font-mono text-pink-500 dark:text-pink-400" })
+                    )
+                )
             );
         };
 
@@ -759,7 +798,11 @@
                         React.createElement("div", null, React.createElement(SectionHeader, { icon: ImageIcon, title: "外观样式" }), React.createElement("div", { className: "space-y-4" }, React.createElement("div", null, React.createElement("label", { className: "settings-label block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2" }, "全局字体"), React.createElement("div", { className: "relative" }, React.createElement("input", { type: "text", value: bodyFont, onChange: (e) => updateBodyFont(e.target.value), className: "w-full px-4 py-2 text-xs rounded-xl bg-white/50 dark:bg-slate-800/50 border border-transparent focus:border-blue-500 outline-none font-mono", placeholder: "输入字体名称 (如: Microsoft YaHei)" }))), React.createElement("div", { className: "bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement("label", { className: "settings-label block text-xs font-bold text-slate-700 dark:text-slate-300 mb-3" }, "玻璃拟态效果"), React.createElement("div", { className: "space-y-4" }, React.createElement("div", null, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-2" }, React.createElement("span", null, "透明度"), React.createElement("span", null, Math.round(glassSettings.opacity * 100) + "%")), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "0.05", max: "0.9", step: "0.05", value: glassSettings.opacity, onChange: (e) => updateGlass('opacity', e.target.value) }))), React.createElement("div", null, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-2" }, React.createElement("span", null, "模糊度"), React.createElement("span", null, glassSettings.blur + "px")), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "0", max: "60", step: "2", value: glassSettings.blur, onChange: (e) => updateGlass('blur', e.target.value) }))))), React.createElement("div", null, React.createElement("label", { className: "settings-label block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2" }, "背景壁纸"), React.createElement("div", { className: "grid grid-cols-3 gap-3 mb-4" }, PRESET_BGS.map(preset => React.createElement("div", { key: preset.id, onClick: () => updateBg(preset.value), className: `relative aspect-[16/9] rounded-xl overflow-hidden cursor-pointer border-2 transition-all hover:scale-105 ${bgImage === preset.value ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent hover:border-gray-300'}` }, preset.previewColor ? React.createElement("div", { className: `w-full h-full ${preset.previewColor}` }) : React.createElement("img", { src: preset.value, className: "w-full h-full object-cover" }), bgImage === preset.value && React.createElement("div", { className: "absolute inset-0 bg-blue-500/20 flex items-center justify-center" }, React.createElement("div", { className: "bg-blue-500 rounded-full p-1" }, React.createElement(Check, { size: 12, className: "text-white" }))), React.createElement("div", { className: "absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-1 text-center font-bold" }, preset.name)))), React.createElement("div", { className: "flex flex-col gap-2" }, React.createElement("div", { className: "flex gap-2" }, React.createElement("input", { type: "text", className: "flex-1 px-4 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-transparent focus:border-pink-500 outline-none transition-colors text-xs dark:text-white backdrop-blur-sm", value: bgImage, onChange: e => updateBg(e.target.value), placeholder: "图片直链..." }), React.createElement("button", { onClick: () => bgFileInputRef.current.click(), className: "p-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 dark:bg-slate-700 dark:text-blue-400 transition-colors shrink-0", title: "上传本地壁纸" }, React.createElement(Upload, { size: 20 }))), React.createElement("input", { type: "file", ref: bgFileInputRef, accept: "image/*", className: "file-input", onChange: (e) => handleFileUpload(e, updateBg) }))))),
                         React.createElement("div", null, React.createElement(SectionHeader, { icon: Search, title: "搜索引擎" }), React.createElement("div", { className: "grid grid-cols-3 gap-2" }, SEARCH_ENGINES.map(engine => React.createElement("button", { key: engine.id, onClick: () => setDefaultEngine(engine), className: `flex flex-col items-center justify-center p-2 rounded-xl transition-all ${searchEngine.id === engine.id ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 text-blue-600 dark:text-blue-300' : 'bg-white/20 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-600 text-slate-500 hover:bg-white/40'}` }, React.createElement(engine.logo, { className: "w-6 h-6 mb-1" }), React.createElement("span", { className: "text-xs font-bold" }, engine.name))))),
                         React.createElement("div", null, React.createElement(SectionHeader, { icon: Palette, title: "主题颜色" }), React.createElement("div", { className: "space-y-6" }, React.createElement("div", null, React.createElement("div", { className: "text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider" }, "首页视觉元素"), React.createElement("div", { className: "grid grid-cols-3 gap-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement(ColorPicker, { color: colors.searchBtn, label: "搜索按钮", onChange: (val) => updateColor('searchBtn', val) }), React.createElement(ColorPicker, { color: colors.blobLeft, label: "左侧光晕", onChange: (val) => updateColor('blobLeft', val) }), React.createElement(ColorPicker, { color: colors.blobRight, label: "右侧光晕", onChange: (val) => updateColor('blobRight', val) }), React.createElement(ColorPicker, { color: colors.title1, label: "标题前段", onChange: (val) => updateColor('title1', val) }), React.createElement(ColorPicker, { color: colors.particle, label: "连接词", onChange: (val) => updateColor('particle', val) }), React.createElement(ColorPicker, { color: colors.title2, label: "标题后段", onChange: (val) => updateColor('title2', val) }), React.createElement(ColorPicker, { color: colors.cardHover, label: "卡片悬停", onChange: (val) => updateColor('cardHover', val) }))), React.createElement("div", null, React.createElement("div", { className: "text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider" }, "界面文字"), React.createElement("div", { className: "grid grid-cols-3 gap-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement(ColorPicker, { color: colors.textColor, label: "全局主色", onChange: (val) => updateColor('textColor', val) }), React.createElement(ColorPicker, { color: colors.subTextColor, label: "次要文字", onChange: (val) => updateColor('subTextColor', val) }), React.createElement(ColorPicker, { color: colors.modalTitleColor, label: "弹窗标题", onChange: (val) => updateColor('modalTitleColor', val) }), React.createElement(ColorPicker, { color: colors.sectionTitleColor, label: "分组标题", onChange: (val) => updateColor('sectionTitleColor', val) }), React.createElement(ColorPicker, { color: colors.labelColor, label: "选项标签", onChange: (val) => updateColor('labelColor', val) }))))),
-                        React.createElement("div", { className: "pt-4 border-t border-slate-200 dark:border-slate-700" }, React.createElement("button", { onClick: resetSettings, className: "w-full py-3 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-colors font-bold" }, React.createElement(RotateCcw, { size: 16 }), "重置所有数据"))
+                        React.createElement("div", { className: "pt-4 border-t border-slate-200 dark:border-slate-700" }, 
+                            React.createElement("button", { onClick: resetSettings, className: "w-full py-3 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-colors font-bold" }, React.createElement(RotateCcw, { size: 16 }), "重置所有数据"),
+                            // 在这里添加不蒜子组件
+                            React.createElement(BusuanziStats)
+                        )
                     ))
                 )
             );
