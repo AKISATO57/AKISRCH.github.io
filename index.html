@@ -6,8 +6,8 @@
     <title>AKISATO灯塔</title>
     <meta name="description" content="简洁、美观、可自定义的二次元导航站">
     
-    <!-- 默认浏览器标签页图标 (作为后备) -->
-    <link rel="icon" href="https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEJ8HRpHjs80LFuF_yfs2Avw8wPzD918gACRjcAAtPG8VTjbO0fkjB6CDYE.png" type="image/png">
+    <!-- 默认浏览器标签页图标 (初始占位) -->
+    <link id="dynamic-favicon" rel="icon" href="https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEJ8HRpHjs80LFuF_yfs2Avw8wPzD918gACRjcAAtPG8VTjbO0fkjB6CDYE.png" type="image/png">
     
     <!-- 引入 Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,11 +35,25 @@
                     animation: {
                         'float': 'float 6s ease-in-out infinite',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'blob-left': 'blob-left 25s infinite alternate cubic-bezier(0.4, 0, 0.2, 1)',
+                        'blob-right': 'blob-right 28s infinite alternate-reverse cubic-bezier(0.4, 0, 0.2, 1)',
                     },
                     keyframes: {
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
                             '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'blob-left': {
+                            '0%': { transform: 'translate(0, 0) scale(1)' },
+                            '33%': { transform: 'translate(80px, 150px) scale(1.4)' },
+                            '66%': { transform: 'translate(-40px, 80px) scale(0.9)' },
+                            '100%': { transform: 'translate(20px, -20px) scale(1.1)' }
+                        },
+                        'blob-right': {
+                            '0%': { transform: 'translate(0, 0) scale(1)' },
+                            '33%': { transform: 'translate(-100px, -120px) scale(1.3)' },
+                            '66%': { transform: 'translate(50px, -60px) scale(0.8)' },
+                            '100%': { transform: 'translate(-20px, 20px) scale(1)' }
                         }
                     },
                     boxShadow: {
@@ -65,21 +79,9 @@
     </script>
 
     <style>
-        html, body { overscroll-behavior: none; height: 100%; }
         html { scroll-behavior: smooth; }
-        
-        /* 全局滚动条样式 */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
-        * { -webkit-tap-highlight-color: transparent; }
-        
-        /* 隐藏滚动条但保留滚动功能 */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
         body {
+            min-height: 100vh;
             font-family: 'Nunito', 'M PLUS Rounded 1c', sans-serif; 
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -92,32 +94,28 @@
             padding: 0;
         }
         
-        /* --- 毛玻璃核心样式 (修复版) --- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(150, 150, 150, 0.5); }
+        * { -webkit-tap-highlight-color: transparent; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         .glass-panel {
             --glass-opacity: 0.2;
             --glass-blur: 25px;
-            /* 使用 fallback 颜色确保在模糊未加载时也有颜色 */
             background: rgba(255, 255, 255, var(--glass-opacity));
-            
-            /* 关键修复：默认移除 backdrop-filter。
-               这能防止页面加载初期、动画过程中出现的卡顿、闪烁或模糊错位。
-            */
-            /* backdrop-filter: blur(var(--glass-blur)) saturate(120%); */ 
-            /* -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%); */
-
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
             transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
             isolation: isolate; 
         }
 
-        /* 关键修复：只有当 body 拥有 blur-loaded 类时（即动画结束后），才应用模糊滤镜。
-           这是“JS等DOM生成后再处理”的具体实现。
-        */
         body.blur-loaded .glass-panel {
             backdrop-filter: blur(var(--glass-blur)) saturate(120%);
             -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%);
-            /* 添加淡入过渡，让模糊效果平滑出现，不突兀 */
             transition: backdrop-filter 1s ease, -webkit-backdrop-filter 1s ease, border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
         }
 
@@ -191,24 +189,21 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
             position: relative;
-            /* 关键修复：确保子元素也被裁切，防止背景溢出成方形 */
             overflow: hidden; 
             transition: transform 0.2s;
             background-size: 100% 100%;
-            -webkit-mask-image: -webkit-radial-gradient(white, black); /* Safari 修复圆角溢出 */
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
         }
         .color-trigger:hover { transform: scale(1.1); border-color: white; }
         
-        /* 棋盘格背景 */
         .color-trigger.is-transparent {
             background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
             background-size: 8px 8px;
             background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
         }
 
-        /* 默认文字覆盖层 - 增加圆角确保不溢出 */
         .default-text-overlay {
-            border-radius: 50%; /* 强制圆形 */
+            border-radius: 50%;
             overflow: hidden;
         }
 
@@ -234,7 +229,7 @@
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 overflow-x-hidden selection:bg-pink-200 selection:text-pink-900 dark:selection:bg-pink-900 dark:selection:text-pink-100 select-none transition-colors duration-300" ondragstart="return false;">
-    <div id="root"></div>
+    <div id="root" class="min-h-screen"></div>
 
     <script type="module">
         import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -245,7 +240,7 @@
             Search, Plus, Trash2, Settings, X, Moon, Sun, 
             LayoutGrid, Image as ImageIcon, RotateCcw,
             Check, Sparkles, Clock, Palette, Sliders, GripHorizontal, Edit3, Upload, Link as LinkIcon,
-            Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet, Eye, User
+            Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet, Eye, User, Frame, MousePointer
         } from 'lucide-react';
 
         // --- 全局动画参数 ---
@@ -280,7 +275,6 @@
             { id: 'img2', name: '唯美 02', value: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEKYMdpIATJlmkGIRvHD-dw25EzOIYVcAACAjcAAlVBAVVdBElS6u54wTYE.jpg' }
         ];
 
-        // 增加 visitCount 字段用于热度记忆
         const DEFAULT_LINKS = [
             { id: '6', title: 'AKIHOME', url: 'https://akihm.netlify.app', desc: '我的主页', iconUrl: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEJ8HRpHjs80LFuF_yfs2Avw8wPzD918gACRjcAAtPG8VTjbO0fkjB6CDYE.png', visitCount: 0 },
             { id: '1', title: 'Google', url: 'https://www.google.com', desc: '遇到问题先问我', visitCount: 0 },
@@ -292,11 +286,21 @@
 
         const DEFAULT_LAYOUT = {
             showTitle: true,
-            searchPos: 'center', // 'center' | 'top'
+            searchPos: 'center', 
             text1: 'AKISATO',
             particleText: 'の',
             text2: '灯塔',
-            gridTop: 0 
+            gridTop_top: 0,    
+            gridTop_center: 0,
+            showCollections: true, 
+            cardSize: 100, 
+            cardGap: 3 
+        };
+
+        const DEFAULT_VISUALS = {
+            enableCursor: true,
+            enableParticles: true,
+            enableDynamicBlobs: true 
         };
 
         // --- 图标 ---
@@ -319,7 +323,7 @@
             { id: 'bing', name: 'Bing', url: 'https://tw.bing.com/search?mkt=zh-TW&q=', logo: BingLogo }
         ];
 
-        // --- Color Utilities (hexToHsv, hsvToHex) ---
+        // --- Color Utilities ---
         const hexToHsv = (hex) => {
             let r = 0, g = 0, b = 0;
             if (!hex) return { h: 0, s: 0, v: 100 }; 
@@ -352,7 +356,7 @@
             return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
         };
 
-        // --- Color Picker Components (SaturationBrightnessPicker, HueSlider, ColorPickerPopover, ColorPicker) ---
+        // --- Color Picker Components ---
         const SaturationBrightnessPicker = ({ hue, saturation, value, onChange }) => {
             const containerRef = useRef(null);
             const [isDragging, setIsDragging] = useState(false);
@@ -433,82 +437,82 @@
             );
         };
 
-        // --- 不蒜子统计组件 (Busuanzi Stats) ---
+        // --- Busuanzi Stats ---
         const BusuanziStats = () => {
             useEffect(() => {
-                // 强制重新加载不蒜子脚本，以触发DOM扫描
                 const scriptUrl = "//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js";
-                
-                // 移除旧脚本（如果存在）
                 const oldScript = document.querySelector(`script[src="${scriptUrl}"]`);
                 if (oldScript) oldScript.remove();
-
                 const script = document.createElement('script');
                 script.src = scriptUrl;
                 script.async = true;
-                script.referrerPolicy = "no-referrer-when-downgrade"; // 兼容性修复
+                script.referrerPolicy = "no-referrer-when-downgrade";
                 document.body.appendChild(script);
-
-                return () => {
-                    // 可选清理
-                };
             }, []);
-
             return React.createElement("div", { className: "mt-4 flex flex-col items-center gap-2 w-full" },
                 React.createElement("div", { className: "w-full h-px bg-slate-200 dark:bg-slate-700/50" }), 
                 React.createElement("div", { className: "flex items-center gap-4 text-[10px] text-slate-400 dark:text-slate-500 font-bold select-none pt-2 opacity-80 hover:opacity-100 transition-opacity" },
                     React.createElement("span", { id: "busuanzi_container_site_pv", className: "flex items-center gap-1", style: { display: 'none' } },
-                        React.createElement(Eye, { size: 12 }), 
-                        "访问量",
-                        React.createElement("span", { id: "busuanzi_value_site_pv", className: "font-mono text-slate-600 dark:text-slate-400" })
+                        React.createElement(Eye, { size: 12 }), "访问量", React.createElement("span", { id: "busuanzi_value_site_pv", className: "font-mono text-slate-600 dark:text-slate-400" })
                     ),
                     React.createElement("span", { className: "w-px h-3 bg-slate-300 dark:bg-slate-700" }),
                     React.createElement("span", { id: "busuanzi_container_site_uv", className: "flex items-center gap-1", style: { display: 'none' } },
-                        React.createElement(User, { size: 12 }), 
-                        "访客数",
-                        React.createElement("span", { id: "busuanzi_value_site_uv", className: "font-mono text-pink-500 dark:text-pink-400" })
+                        React.createElement(User, { size: 12 }), "访客数", React.createElement("span", { id: "busuanzi_value_site_uv", className: "font-mono text-pink-500 dark:text-pink-400" })
                     )
                 )
             );
         };
 
-        // --- 组件 ---
-        // 核心修改：在 style 中移除了 transform: 'translateZ(0)' 以修复毛玻璃模糊在动画中丢失的问题
+        // --- Components ---
         const GlassCard = React.forwardRef(({ children, className = "", onClick, hoverColor, glassSettings, isDragging, onPointerDown }, ref) => (
-            React.createElement("div", { ref: ref, onPointerDown: onPointerDown, onClick: onClick, className: `glass-panel rounded-[2rem] transition-colors transition-shadow duration-300 ${className} ${isDragging ? 'cursor-grabbing z-[50] ring-4 ring-blue-400/50 shadow-2xl' : 'hover-glow cursor-grab active:cursor-grabbing'}`, style: { '--hover-color': hoverColor, '--glass-opacity': glassSettings?.opacity ?? 0.2, '--glass-blur': (glassSettings?.blur ?? 25) + 'px' } }, children)
+            React.createElement("div", { ref: ref, onPointerDown: onPointerDown, onClick: onClick, className: `glass-panel rounded-[2rem] transition-colors transition-shadow duration-300 ${className} ${isDragging ? 'cursor-grabbing z-[50] ring-4 ring-blue-400/50 shadow-2xl' : 'hover-glow cursor-grab active:cursor-grabbing'}`, style: { '--hover-color': hoverColor, '--glass-opacity': glassSettings?.opacity ?? 0.2, '--glass-blur': (glassSettings?.blur ?? 25) + 'px', ...(hoverColor ? { borderColor: 'transparent' } : {}) } },
+                React.createElement("style", null, `.glass-card-${ref?.current?.id || 'dynamic'}:hover { border-top-color: ${hoverColor} !important; }`),
+                children
+            )
         ));
-        const CustomCursor = ({ hidden }) => {
-            const cursorX = useMotionValue(-100); const cursorY = useMotionValue(-100); const springConfigPC = { damping: 20, stiffness: 400 }; const pcX = useSpring(cursorX, springConfigPC); const pcY = useSpring(cursorY, springConfigPC);
-            const [isTouch, setIsTouch] = useState(false); const [isClicking, setIsClicking] = useState(false); const [particles, setParticles] = useState([]); const [isIdle, setIsIdle] = useState(false); const [isHoveringInteractive, setIsHoveringInteractive] = useState(false); const isTouchRef = useRef(false); const idleTimerRef = useRef(null); const lastParticleTime = useRef(0);
+        
+        // --- Custom Cursor ---
+        // 核心修复：此处已恢复为"副本"中的代码，使用 spring 物理效果，使光标更 Q 弹跟手
+        const CustomCursor = ({ enableCursor, enableParticles }) => {
+            const cursorX = useMotionValue(-100); const cursorY = useMotionValue(-100); 
+            // RESTORED: Spring Physics for cursor movement to make it "q-bouncy"
+            const springConfigPC = { damping: 20, stiffness: 400 }; 
+            const pcX = useSpring(cursorX, springConfigPC); 
+            const pcY = useSpring(cursorY, springConfigPC);
+            
+            const [isTouch, setIsTouch] = useState(false); const [isClicking, setIsClicking] = useState(false); const [particles, setParticles] = useState([]); const [isHoveringInteractive, setIsHoveringInteractive] = useState(false); const lastParticleTime = useRef(0);
             useEffect(() => {
                  let idCounter = 0;
                  const onMouseOver = (e) => { const target = e.target; const isInteractive = target.tagName === 'A' || target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'LABEL' || target.closest('a') || target.closest('button') || target.classList.contains('cursor-pointer') || window.getComputedStyle(target).cursor === 'pointer'; setIsHoveringInteractive(isInteractive); };
-                 const onMouseMove = (e) => { isTouchRef.current = false; setIsTouch(false); setIsIdle(false); cursorX.set(e.clientX); cursorY.set(e.clientY); const now = Date.now(); if (now - lastParticleTime.current > 40 && Math.random() > 0.7) { lastParticleTime.current = now; const id = idCounter++; setParticles(prev => [...prev.slice(-10), { id, x: e.clientX, y: e.clientY, color: Math.random() > 0.5 ? '#64d2ff' : '#ff7eb3' }]); setTimeout(() => setParticles(prev => prev.filter(p => p.id !== id)), 600); } };
-                 const onTouchMove = (e) => { isTouchRef.current = true; setIsTouch(true); setIsIdle(false); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); idleTimerRef.current = setTimeout(() => setIsIdle(true), 500); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
-                 const onTouchStart = (e) => { isTouchRef.current = true; setIsTouch(true); setIsClicking(true); setIsIdle(false); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
-                 const onMouseDown = () => setIsClicking(true); const onMouseUp = () => setIsClicking(false); const onTouchEnd = () => { setIsClicking(false); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); idleTimerRef.current = setTimeout(() => setIsIdle(true), 500); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
-                 window.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseover', onMouseOver); window.addEventListener('touchmove', onTouchMove, { passive: true }); window.addEventListener('touchstart', onTouchStart, { passive: true }); window.addEventListener('mousedown', onMouseDown); window.addEventListener('mouseup', onMouseUp); window.addEventListener('touchend', onTouchEnd);
-                 return () => { window.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseover', onMouseOver); window.removeEventListener('touchmove', onTouchMove); window.removeEventListener('touchstart', onTouchStart); window.removeEventListener('mousedown', onMouseDown); window.removeEventListener('mouseup', onMouseUp); window.removeEventListener('touchend', onTouchEnd); if (idleTimerRef.current) clearTimeout(idleTimerRef.current); }
-            }, []);
-            const shouldHide = hidden || (isTouch && isIdle);
-            return React.createElement(AnimatePresence, null, !shouldHide && React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 }, className: "pointer-events-none z-[9999] fixed inset-0 overflow-hidden !transition-none" }, !isTouch && particles.map(p => React.createElement(motion.div, { key: p.id, initial: { opacity: 0.8, scale: 1, x: p.x, y: p.y }, animate: { opacity: 0, scale: 0, x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 20 }, transition: { duration: 0.6 }, className: "fixed w-2 h-2 rounded-full pointer-events-none !transition-none", style: { backgroundColor: p.color } })), React.createElement(motion.div, { className: "fixed top-0 left-0 pointer-events-none will-change-transform !transition-none", style: { x: isTouch ? cursorX : pcX, y: isTouch ? cursorY : pcY } }, React.createElement("div", { className: "-translate-x-1/2 -translate-y-1/2" }, React.createElement(motion.div, { animate: { scale: isClicking ? 2.5 : (isHoveringInteractive ? 0 : 1), opacity: isHoveringInteractive ? 0 : 1, backgroundColor: isClicking ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.05)", backdropFilter: isClicking ? "blur(0px)" : "blur(4px)", borderColor: isClicking ? "rgba(100, 210, 255, 0.3)" : "rgba(96, 165, 250, 0.8)" }, transition: { type: "spring", stiffness: 400, damping: 25 }, className: "w-12 h-12 rounded-full border-2 shadow-[0_0_15px_rgba(100,210,255,0.5)] flex items-center justify-center overflow-hidden !transition-none" }, React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "absolute top-1 left-2 w-4 h-2 bg-white/60 rounded-full rotate-[-45deg] blur-[1px] !transition-none" }), React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_5px_#3b82f6] !transition-none" }))))));
+                 const onMouseMove = (e) => { setIsTouch(false); cursorX.set(e.clientX); cursorY.set(e.clientY); const now = Date.now(); if (enableParticles && now - lastParticleTime.current > 40 && Math.random() > 0.7) { lastParticleTime.current = now; const id = idCounter++; setParticles(prev => [...prev.slice(-10), { id, x: e.clientX, y: e.clientY, color: Math.random() > 0.5 ? '#64d2ff' : '#ff7eb3' }]); setTimeout(() => setParticles(prev => prev.filter(p => p.id !== id)), 600); } };
+                 // Added touch move for responsiveness
+                 const onTouchMove = (e) => { setIsTouch(true); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
+                 const onTouchStart = (e) => { setIsTouch(true); setIsClicking(true); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
+                 const onMouseDown = () => setIsClicking(true); const onMouseUp = () => setIsClicking(false); const onTouchEnd = () => setIsClicking(false);
+                 window.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseover', onMouseOver); 
+                 window.addEventListener('touchmove', onTouchMove, { passive: true }); 
+                 window.addEventListener('touchstart', onTouchStart, { passive: true }); 
+                 window.addEventListener('mousedown', onMouseDown); window.addEventListener('mouseup', onMouseUp); window.addEventListener('touchend', onTouchEnd);
+                 return () => { 
+                    window.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseover', onMouseOver); 
+                    window.removeEventListener('touchmove', onTouchMove); 
+                    window.removeEventListener('touchstart', onTouchStart); 
+                    window.removeEventListener('mousedown', onMouseDown); window.removeEventListener('mouseup', onMouseUp); window.removeEventListener('touchend', onTouchEnd); 
+                 }
+            }, [enableParticles]);
+            
+            return React.createElement(AnimatePresence, null, !isTouch && React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 }, className: "pointer-events-none z-[9999] fixed inset-0 overflow-hidden !transition-none" }, 
+                enableParticles && particles.map(p => React.createElement(motion.div, { key: p.id, initial: { opacity: 0.8, scale: 1, x: p.x, y: p.y }, animate: { opacity: 0, scale: 0, x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 20 }, transition: { duration: 0.6 }, className: "fixed w-2 h-2 rounded-full pointer-events-none !transition-none", style: { backgroundColor: p.color } })),
+                // FIX: Use pcX/pcY for spring effect
+                enableCursor && React.createElement(motion.div, { className: "fixed top-0 left-0 pointer-events-none will-change-transform !transition-none", style: { x: isTouch ? cursorX : pcX, y: isTouch ? cursorY : pcY } }, React.createElement("div", { className: "-translate-x-1/2 -translate-y-1/2" }, React.createElement(motion.div, { animate: { scale: isClicking ? 2.5 : (isHoveringInteractive ? 0 : 1), opacity: isHoveringInteractive ? 0 : 1, backgroundColor: isClicking ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.05)", backdropFilter: isClicking ? "blur(0px)" : "blur(4px)", borderColor: isClicking ? "rgba(100, 210, 255, 0.3)" : "rgba(96, 165, 250, 0.8)" }, transition: { type: "spring", stiffness: 400, damping: 25 }, className: "w-12 h-12 rounded-full border-2 shadow-[0_0_15px_rgba(100,210,255,0.5)] flex items-center justify-center overflow-hidden !transition-none" }, React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "absolute top-1 left-2 w-4 h-2 bg-white/60 rounded-full rotate-[-45deg] blur-[1px] !transition-none" }), React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_5px_#3b82f6] !transition-none" }))))));
         };
+
         const Modal = ({ isOpen, onClose, title, children, glassSettings }) => (
             React.createElement(AnimatePresence, null, isOpen && React.createElement(React.Fragment, null, 
                 React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: onClose, className: "fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]" }), 
-                // 修复：将容器与动画元素分离。外层 div 负责居中定位（无动画），内层 motion.div 负责弹窗本身的缩放/透明度/毛玻璃渲染
                 React.createElement("div", { className: "fixed inset-0 z-[61] flex items-center justify-center pointer-events-none" },
-                    React.createElement(motion.div, { 
-                        initial: { opacity: 0, scale: 0.9, y: 20 }, 
-                        animate: { opacity: 1, scale: 1, y: 0 }, 
-                        exit: { opacity: 0, scale: 0.9, y: 20 }, 
-                        className: "w-full max-w-md p-6 pointer-events-auto m-4 max-h-[80vh] overflow-y-auto rounded-[2.5rem] shadow-2xl glass-panel no-scrollbar", 
-                        style: { '--glass-opacity': glassSettings?.opacity ?? 0.3, '--glass-blur': (glassSettings?.blur ?? 20) + 'px' } 
-                    }, 
-                        React.createElement("div", { className: "flex justify-between items-center mb-6" }, 
-                            React.createElement("h3", { className: "ui-modal-title text-xl font-black text-slate-800 dark:text-white" }, title), 
-                            React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-white/40 dark:hover:bg-slate-700/40 transition-colors" }, React.createElement(X, { className: "w-5 h-5" }))
-                        ), 
+                    React.createElement(motion.div, { initial: { opacity: 0, scale: 0.9, y: 20 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.9, y: 20 }, className: "w-full max-w-md p-6 pointer-events-auto m-4 max-h-[80vh] overflow-y-auto rounded-[2.5rem] shadow-2xl glass-panel no-scrollbar", style: { '--glass-opacity': glassSettings?.opacity ?? 0.3, '--glass-blur': (glassSettings?.blur ?? 20) + 'px' } }, 
+                        React.createElement("div", { className: "flex justify-between items-center mb-6" }, React.createElement("h3", { className: "ui-modal-title text-xl font-black text-slate-800 dark:text-white" }, title), React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-white/40 dark:hover:bg-slate-700/40 transition-colors" }, React.createElement(X, { className: "w-5 h-5" }))), 
                         children
                     )
                 )
@@ -530,14 +534,11 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [links, setLinks] = useState(() => {
                 const storedLinks = localStorage.getItem('my_links');
-                // 数据迁移：确保所有链接都有 visitCount 属性
-                const parsedLinks = storedLinks ? JSON.parse(storedLinks) : DEFAULT_LINKS;
-                return parsedLinks.map(link => ({ ...link, visitCount: link.visitCount || 0 }));
+                return storedLinks ? JSON.parse(storedLinks) : DEFAULT_LINKS;
             });
             const [history, setHistory] = useState(() => {
                 const storedHistory = localStorage.getItem('search_history_v2');
-                if (storedHistory) { return JSON.parse(storedHistory); }
-                return [];
+                return storedHistory ? JSON.parse(storedHistory) : [];
             });
             const defaultLightColors = { searchBtn: '#3b82f6', blobLeft: '#60a5fa', blobRight: '#f472b6', title1: '', title2: '', particle: '', textColor: '', subTextColor: '#64748b', modalTitleColor: '', sectionTitleColor: '', labelColor: '', cardHover: '#f472b6' };
             const defaultDarkColors = { searchBtn: '#6366f1', blobLeft: '#8b5cf6', blobRight: '#ec4899', title1: '', title2: '', particle: '', textColor: '#e2e8f0', subTextColor: '#94a3b8', modalTitleColor: '', sectionTitleColor: '', labelColor: '', cardHover: '#ec4899' };
@@ -550,277 +551,54 @@
             const updateColor = (key, value) => { const newColors = { ...colors, [key]: value }; setColors(newColors); const storageKey = theme === 'dark' ? 'custom_colors_dark' : 'custom_colors_light'; localStorage.setItem(storageKey, JSON.stringify(newColors)); };
             const updateBodyFont = (font) => { setBodyFont(font); localStorage.setItem('body_font', font); };
             const [glassSettings, setGlassSettings] = useState(() => { const storedGlass = localStorage.getItem('glass_settings'); return storedGlass ? JSON.parse(storedGlass) : { opacity: 0.2, blur: 25 }; });
-            const [layoutSettings, setLayoutSettings] = useState(() => { const storedLayout = localStorage.getItem('layout_settings'); return storedLayout ? { ...DEFAULT_LAYOUT, ...JSON.parse(storedLayout) } : DEFAULT_LAYOUT; });
-            const [showSettings, setShowSettings] = useState(false); const [showLinkModal, setShowLinkModal] = useState(false); const [editingLink, setEditingLink] = useState(null); const [linkForm, setLinkForm] = useState({ title: '', url: '', desc: '', iconUrl: '' });
-            const [isEngineHovered, setIsEngineHovered] = useState(false); const [showHistory, setShowHistory] = useState(false); const [draggingId, setDraggingId] = useState(null); const [isSearchFocused, setIsSearchFocused] = useState(false);
-            const dragStartPos = useRef({ x: 0, y: 0 }); const lastSwapTime = useRef(0); const constraintsRef = useRef(null); const fileInputRef = useRef(null); const bgFileInputRef = useRef(null); const engineHoverTimer = useRef(null); const searchInputRef = useRef(null);
-
-            // --- 核心修复：背景图片加载状态管理 ---
-            // 如果有背景图片，初始状态设为未加载(false)，否则设为已加载(true)
-            const [isBgLoaded, setIsBgLoaded] = useState(() => {
-                const saved = localStorage.getItem('bg_image');
-                return !saved; 
-            });
-
-            // 监听背景图片加载，实现“先加载好背景再播放动画”
-            useEffect(() => {
-                if (!bgImage) {
-                    setIsBgLoaded(true);
-                    return;
-                }
-                
-                // 重置状态
-                setIsBgLoaded(false);
-                
-                const img = new Image();
-                img.src = bgImage;
-                
-                const handleLoad = () => {
-                    setIsBgLoaded(true);
-                };
-
-                img.onload = handleLoad;
-                img.onerror = handleLoad; // 即使失败也继续显示内容
-                
-                // 3秒超时保底，防止图片加载过慢导致页面一直空白
-                const timer = setTimeout(handleLoad, 3000);
-                
-                return () => {
-                    clearTimeout(timer);
-                    img.onload = null;
-                    img.onerror = null;
-                };
-            }, [bgImage]);
-
-
-            // --- 核心修复：延迟开启毛玻璃效果 ---
-            // 等待背景加载完毕 + 动画入场结束后，再开启 backdrop-filter，避免卡顿
-            useEffect(() => {
-                if (isBgLoaded) {
-                    // 背景加载完，动画开始。等待动画结束(约800ms)后再开启模糊
-                    const timer = setTimeout(() => {
-                        document.body.classList.add('blur-loaded');
-                    }, 800);
-                    return () => clearTimeout(timer);
-                } else {
-                    document.body.classList.remove('blur-loaded');
-                }
-            }, [isBgLoaded]);
-
-
-            useEffect(() => { if (searchInputRef.current && layoutSettings.searchPos === 'center') { setTimeout(() => searchInputRef.current.focus(), 500); } }, [layoutSettings.searchPos]);
             
-            // 新增：尝试将浏览器标签页图标变成圆形 (保持不变)
-            useEffect(() => {
-                const setCircularFavicon = (url) => {
-                    // 1. 无论如何先设置一个默认图标，保证页面不会因为 JS 错误而没有图标
-                    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-                    link.type = 'image/png';
-                    link.rel = 'icon';
-                    link.href = url; // 先设置原始 URL
-                    if (!link.parentNode) document.head.appendChild(link);
+            const [layoutSettings, setLayoutSettings] = useState(() => { 
+                const storedLayout = localStorage.getItem('layout_settings'); 
+                const parsed = storedLayout ? JSON.parse(storedLayout) : {};
+                return { ...DEFAULT_LAYOUT, ...parsed, gridTop_top: parsed.gridTop_top ?? 0, gridTop_center: parsed.gridTop_center ?? 0 }; 
+            });
+            const [showSettings, setShowSettings] = useState(false); const [showLinkModal, setShowLinkModal] = useState(false); const [editingLink, setEditingLink] = useState(null); const [linkForm, setLinkForm] = useState({ title: '', url: '', desc: '', iconUrl: '' });
+            const [visualSettings, setVisualSettings] = useState(() => { const stored = localStorage.getItem('visual_settings'); return stored ? { ...DEFAULT_VISUALS, ...JSON.parse(stored) } : DEFAULT_VISUALS; });
+            const updateVisuals = (key, value) => { const newSettings = { ...visualSettings, [key]: value }; setVisualSettings(newSettings); localStorage.setItem('visual_settings', JSON.stringify(newSettings)); };
+            const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('avatar_url') || DEFAULT_AVATAR);
+            const [faviconUrl, setFaviconUrl] = useState(() => localStorage.getItem('favicon_url') || DEFAULT_AVATAR);
+            const updateAvatar = (url) => { setAvatarUrl(url); localStorage.setItem('avatar_url', url); };
+            const updateFavicon = (url) => { setFaviconUrl(url); localStorage.setItem('favicon_url', url); };
+            const [isEngineMenuOpen, setIsEngineMenuOpen] = useState(false);
+            const engineMenuRef = useRef(null);
+            const [showHistory, setShowHistory] = useState(false); const [draggingId, setDraggingId] = useState(null); const [isSearchFocused, setIsSearchFocused] = useState(false);
+            const dragStartPos = useRef({ x: 0, y: 0 }); const lastSwapTime = useRef(0); const constraintsRef = useRef(null); const fileInputRef = useRef(null); const bgFileInputRef = useRef(null); const searchInputRef = useRef(null); 
+            const avatarInputRef = useRef(null); const faviconInputRef = useRef(null);
+            const isAutoFocusing = useRef(false);
+            const [isBgLoaded, setIsBgLoaded] = useState(() => { const saved = localStorage.getItem('bg_image'); return !saved; });
 
-                    // 2. 尝试使用 Canvas 裁剪圆形
-                    const canvas = document.createElement('canvas'); 
-                    canvas.width = 64; 
-                    canvas.height = 64; 
-                    const ctx = canvas.getContext('2d'); 
-                    const img = new Image(); 
-                    
-                    // 关键：配置跨域属性，这可能引发报错，所以需要后续的错误处理
-                    img.crossOrigin = "Anonymous"; 
-                    img.src = url;
-                    
-                    img.onload = () => { 
-                        try {
-                            ctx.beginPath(); 
-                            ctx.arc(32, 32, 32, 0, 2 * Math.PI); 
-                            ctx.clip(); 
-                            ctx.drawImage(img, 0, 0, 64, 64); 
-                            link.href = canvas.toDataURL(); 
-                        } catch (e) {
-                            // 如果 Canvas 导出失败（例如 Tainted Canvas），静默失败，保留原图标
-                            console.warn("Favicon circular crop failed, using original.");
-                        }
-                    };
-
-                    // 关键修复：捕获图片加载错误（如 CORS 阻止），防止控制台爆红
-                    img.onerror = () => {
-                        // 加载失败，不做任何操作，上面的 link.href 已经设置了原图作为兜底
-                        console.log("Favicon load failed (CORS?), using original.");
-                    };
-                };
-                setCircularFavicon(DEFAULT_AVATAR);
-            }, []);
-
+            useEffect(() => { if (!bgImage) { setIsBgLoaded(true); return; } setIsBgLoaded(false); const img = new Image(); img.src = bgImage; const handleLoad = () => { setIsBgLoaded(true); }; img.onload = handleLoad; img.onerror = handleLoad; const timer = setTimeout(handleLoad, 3000); return () => { clearTimeout(timer); img.onload = null; img.onerror = null; }; }, [bgImage]);
+            useEffect(() => { if (isBgLoaded) { const timer = setTimeout(() => { document.body.classList.add('blur-loaded'); }, 800); return () => clearTimeout(timer); } else { document.body.classList.remove('blur-loaded'); } }, [isBgLoaded]);
+            useEffect(() => { if (searchInputRef.current && layoutSettings.searchPos === 'center') { isAutoFocusing.current = true; setTimeout(() => { if (searchInputRef.current) { searchInputRef.current.focus(); } setTimeout(() => { isAutoFocusing.current = false; }, 200); }, 500); } }, [layoutSettings.searchPos]);
+            useEffect(() => { const setCircularFavicon = (url) => { const link = document.getElementById('dynamic-favicon') || document.createElement('link'); link.id = 'dynamic-favicon'; link.type = 'image/png'; link.rel = 'icon'; link.href = url; if (!link.parentNode) document.head.appendChild(link); }; setCircularFavicon(faviconUrl); }, [faviconUrl]);
+            
             const getTextStyle = (color) => { if (!color) return {}; if (color.includes('gradient')) { return { backgroundImage: color, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent', textShadow: 'none' }; } return { color: color, textShadow: '0 2px 10px rgba(0,0,0,0.2)' }; };
-
-            // --- 核心修复：热度算法与自动填充 ---
             const { suggestions, topPrediction } = useMemo(() => {
                 const q = searchQuery.trim().toLowerCase();
                 let combined = [];
-                
-                // 1. 处理历史记录 (添加权重)
-                const historyCandidates = history.map(h => ({ type: 'history', value: h.query, count: h.count, score: h.count * 1 })); // 历史记录权重 1
-                
-                // 2. 处理收藏夹 (添加权重)
-                const linkCandidates = links.map(l => ({ type: 'link', value: l.url, title: l.title, url: l.url, count: l.visitCount || 0, score: (l.visitCount || 0) * 5 })); // 收藏夹权重 5 (大幅优先)
-
-                if (!q) {
-                    // 空搜索时，仅显示历史记录
-                    combined = historyCandidates.sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 15);
-                } else {
-                    // 过滤匹配项
-                    const historyMatches = historyCandidates.filter(h => h.value.toLowerCase().startsWith(q));
-                    // 下拉列表：标题包含或 URL 包含
-                    // 修复：忽略 http:// 和 https:// 前缀，防止输入 'p' 匹配到 'https'
-                    const linkMatches = linkCandidates.filter(l => {
-                        const cleanUrl = l.url.replace(/^https?:\/\//, '').toLowerCase();
-                        return l.title.toLowerCase().includes(q) || cleanUrl.includes(q);
-                    });
-                    
-                    combined = [...historyMatches, ...linkMatches].sort((a, b) => b.score - a.score).slice(0, 30);
-                }
-
-                // 3. 计算 Top Prediction (幽灵文字)
+                const historyCandidates = history.map(h => ({ type: 'history', value: h.query, count: h.count, score: h.count * 1 })); 
+                const linkCandidates = links.map(l => ({ type: 'link', value: l.url, title: l.title, url: l.url, count: l.visitCount || 0, score: (l.visitCount || 0) * 5 })); 
+                if (!q) { combined = historyCandidates.sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 15); } else { const historyMatches = historyCandidates.filter(h => h.value.toLowerCase().startsWith(q)); const linkMatches = linkCandidates.filter(l => { const cleanUrl = l.url.replace(/^https?:\/\//, '').toLowerCase(); return l.title.toLowerCase().includes(q) || cleanUrl.includes(q); }); combined = [...historyMatches, ...linkMatches].sort((a, b) => b.score - a.score).slice(0, 30); }
                 let prediction = '';
-                if (q) {
-                    // 预测候选：必须是【前缀匹配】才能补全
-                    const predictionCandidates = [...historyCandidates, ...linkCandidates].filter(item => {
-                        const val = item.type === 'link' ? item.title : item.value; 
-                        return val.toLowerCase().startsWith(q);
-                    }).sort((a, b) => b.score - a.score);
-
-                    if (predictionCandidates.length > 0) {
-                        const bestMatch = predictionCandidates[0];
-                        // 如果是链接，补全的是标题 (title)，因为用户可能输入的是标题前缀
-                        const matchText = bestMatch.type === 'link' ? bestMatch.title : bestMatch.value;
-                        prediction = searchQuery + matchText.slice(searchQuery.length);
-                    }
-                }
-
+                if (q) { const predictionCandidates = [...historyCandidates, ...linkCandidates].filter(item => { const val = item.type === 'link' ? item.title : item.value; return val.toLowerCase().startsWith(q); }).sort((a, b) => b.score - a.score); if (predictionCandidates.length > 0) { const bestMatch = predictionCandidates[0]; const matchText = bestMatch.type === 'link' ? bestMatch.title : bestMatch.value; prediction = searchQuery + matchText.slice(searchQuery.length); } }
                 return { suggestions: combined, topPrediction: prediction };
             }, [searchQuery, history, links]);
 
             const saveLinks = (newLinks) => { setLinks(newLinks); localStorage.setItem('my_links', JSON.stringify(newLinks)); };
             const updateLayout = (key, value) => { const newLayout = { ...layoutSettings, [key]: value }; setLayoutSettings(newLayout); localStorage.setItem('layout_settings', JSON.stringify(newLayout)); };
-            const handleEngineMouseEnter = () => { if (engineHoverTimer.current) clearTimeout(engineHoverTimer.current); engineHoverTimer.current = setTimeout(() => { setIsEngineHovered(true); }, 300); };
-            const handleEngineMouseLeave = () => { if (engineHoverTimer.current) clearTimeout(engineHoverTimer.current); setIsEngineHovered(false); };
-
-            const handleDrag = (e, info, id) => {
-                if (Date.now() - lastSwapTime.current < 400) return;
-                let clientX, clientY;
-                if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; }
-                if (clientX === undefined) { clientX = info.point.x; clientY = info.point.y; }
-                const elements = document.elementsFromPoint(clientX, clientY);
-                let targetId = null;
-                for (const el of elements) { const sortableEl = el.closest('[data-sortable-id]'); if (sortableEl) { const foundId = sortableEl.getAttribute('data-sortable-id'); if (foundId && foundId !== id) { targetId = foundId; break; } } }
-                if (targetId) {
-                    if (targetId === 'add-btn') { const fromIndex = links.findIndex(l => l.id === id); if (fromIndex === links.length - 1) return; const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.push(item); saveLinks(newLinks); lastSwapTime.current = Date.now(); return; }
-                    const fromIndex = links.findIndex(l => l.id === id); const toIndex = links.findIndex(l => l.id === targetId);
-                    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) { const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.splice(toIndex, 0, item); saveLinks(newLinks); lastSwapTime.current = Date.now(); }
-                }
-            };
-
-            // --- 新增：处理链接点击（增加热度）---
-            const handleLinkClick = (link) => {
-                // 1. 增加访问计数
-                const newLinks = links.map(l => {
-                    if (l.id === link.id) {
-                        return { ...l, visitCount: (l.visitCount || 0) + 1 };
-                    }
-                    return l;
-                });
-                saveLinks(newLinks); // 保存到 localStorage
-                
-                // 2. 打开链接
-                window.open(link.url, '_blank');
-                setShowHistory(false);
-            };
-
-            // --- 核心修复：端口号跳转逻辑 & 强制搜索支持 ---
-            const executeSearch = (query, forceEngine = false) => {
-                if (!query.trim()) return;
-                
-                // 0. 智能热度判断 (Smart Heat Check) - 仅在非强制引擎模式下执行
-                if (!forceEngine) {
-                    const qLower = query.trim().toLowerCase();
-                    // 查找收藏夹中是否有匹配该标题的项
-                    const linkMatch = links.find(l => l.title.toLowerCase() === qLower);
-                    // 查找历史记录中是否有该词条
-                    const historyMatch = history.find(h => h.query.toLowerCase() === qLower);
-
-                    const linkScore = linkMatch ? (linkMatch.visitCount || 0) * 5 : -1; // 收藏夹权重 5
-                    const historyScore = historyMatch ? historyMatch.count : -1;
-
-                    // 如果收藏链接存在，且热度 >= 历史记录热度，直接跳转
-                    if (linkMatch && linkScore >= historyScore) {
-                        handleLinkClick(linkMatch);
-                        return;
-                    }
-                }
-
-                // 1. 记录搜索历史
-                const newHistory = [...history];
-                const existingIndex = newHistory.findIndex(h => h.query === query);
-                if (existingIndex > -1) { newHistory[existingIndex].count += 1; newHistory[existingIndex].lastUsed = Date.now(); } else { newHistory.push({ query: query, count: 1, lastUsed: Date.now() }); }
-                newHistory.sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed);
-                const trimmedHistory = newHistory.slice(0, 50);
-                setHistory(trimmedHistory);
-                localStorage.setItem('search_history_v2', JSON.stringify(trimmedHistory));
-
-                // 2. URL 智能判断逻辑
-                const isUrl = (str) => {
-                    // 只要包含 http/https 开头，直接是网址
-                    if (/^https?:\/\//i.test(str)) return true;
-                    
-                    // 1. Localhost + 端口 (例如 localhost:3000)
-                    if (/^localhost:\d+$/i.test(str)) return true;
-                    
-                    // 2. IP地址 (+端口) (例如 192.168.1.1:8080)
-                    if (/^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(str)) return true;
-                    
-                    // 3. 标准域名 (例如 google.com)
-                    // 简单的域名正则：字母数字横杠 + . + 至少2位后缀
-                    if (/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/.test(str)) return true;
-
-                    return false;
-                };
-
-                if (isUrl(query) && !forceEngine) {
-                    // 如果是网址但没有协议头，补上 http://
-                    let finalUrl = query;
-                    if (!/^https?:\/\//i.test(query)) {
-                        finalUrl = 'http://' + query;
-                    }
-                    window.open(finalUrl, '_blank');
-                } else {
-                    // 否则作为搜索词
-                    window.open(searchEngine.url + encodeURIComponent(query), '_blank'); 
-                }
-                setShowHistory(false);
-                searchInputRef.current?.blur();
-            };
-
-            const handleSearch = (e) => { 
-                e.preventDefault(); 
-                if (topPrediction && topPrediction.length > searchQuery.length) { 
-                    executeSearch(topPrediction); // 回车键：保持智能判断
-                } else { 
-                    executeSearch(searchQuery); // 回车键：保持智能判断
-                } 
-            };
             
-            const handleSuggestionClick = (item) => { 
-                if (item.type === 'link') { 
-                    handleLinkClick(item); 
-                } else { 
-                    setSearchQuery(item.value); 
-                    executeSearch(item.value, true); // 关键修改：点击历史记录图标，强制使用搜索引擎 (true)
-                } 
-                setShowHistory(false); 
-            };
-
+            useEffect(() => { const handleClickOutside = (event) => { if (engineMenuRef.current && !engineMenuRef.current.contains(event.target)) { setIsEngineMenuOpen(false); } }; if (isEngineMenuOpen) { document.addEventListener('mousedown', handleClickOutside); } return () => { document.removeEventListener('mousedown', handleClickOutside); }; }, [isEngineMenuOpen]);
+            
+            const handleDrag = (e, info, id) => { if (Date.now() - lastSwapTime.current < 400) return; let clientX, clientY; if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } if (clientX === undefined) { clientX = info.point.x; clientY = info.point.y; } const elements = document.elementsFromPoint(clientX, clientY); let targetId = null; for (const el of elements) { const sortableEl = el.closest('[data-sortable-id]'); if (sortableEl) { const foundId = sortableEl.getAttribute('data-sortable-id'); if (foundId && foundId !== id) { targetId = foundId; break; } } } if (targetId) { if (targetId === 'add-btn') { const fromIndex = links.findIndex(l => l.id === id); if (fromIndex === links.length - 1) return; const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.push(item); saveLinks(newLinks); lastSwapTime.current = Date.now(); return; } const fromIndex = links.findIndex(l => l.id === id); const toIndex = links.findIndex(l => l.id === targetId); if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) { const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.splice(toIndex, 0, item); saveLinks(newLinks); lastSwapTime.current = Date.now(); } } };
+            const handleLinkClick = (link) => { const newLinks = links.map(l => { if (l.id === link.id) { return { ...l, visitCount: (l.visitCount || 0) + 1 }; } return l; }); saveLinks(newLinks); window.open(link.url, '_blank'); setShowHistory(false); };
+            const executeSearch = (query, forceEngine = false) => { if (!query.trim()) return; if (!forceEngine) { const qLower = query.trim().toLowerCase(); const linkMatch = links.find(l => l.title.toLowerCase() === qLower); const historyMatch = history.find(h => h.query.toLowerCase() === qLower); const linkScore = linkMatch ? (linkMatch.visitCount || 0) * 5 : -1; const historyScore = historyMatch ? historyMatch.count : -1; if (linkMatch && linkScore >= historyScore) { handleLinkClick(linkMatch); return; } } const newHistory = [...history]; const existingIndex = newHistory.findIndex(h => h.query === query); if (existingIndex > -1) { newHistory[existingIndex].count += 1; newHistory[existingIndex].lastUsed = Date.now(); } else { newHistory.push({ query: query, count: 1, lastUsed: Date.now() }); } newHistory.sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed); const trimmedHistory = newHistory.slice(0, 50); setHistory(trimmedHistory); localStorage.setItem('search_history_v2', JSON.stringify(trimmedHistory)); const isUrl = (str) => { if (/^https?:\/\//i.test(str)) return true; if (/^localhost:\d+$/i.test(str)) return true; if (/^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(str)) return true; if (/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/.test(str)) return true; return false; }; if (isUrl(query) && !forceEngine) { let finalUrl = query; if (!/^https?:\/\//i.test(query)) { finalUrl = 'http://' + query; } window.open(finalUrl, '_blank'); } else { window.open(searchEngine.url + encodeURIComponent(query), '_blank'); } setShowHistory(false); searchInputRef.current?.blur(); };
+            const handleSearch = (e) => { e.preventDefault(); if (topPrediction && topPrediction.length > searchQuery.length) { executeSearch(topPrediction); } else { executeSearch(searchQuery); } };
+            const handleSuggestionClick = (item) => { if (item.type === 'link') { handleLinkClick(item); } else { setSearchQuery(item.value); executeSearch(item.value, true); } setShowHistory(false); };
             const deleteHistoryItem = (itemQuery, e) => { e.stopPropagation(); const newHistory = history.filter(h => h.query !== itemQuery); setHistory(newHistory); localStorage.setItem('search_history_v2', JSON.stringify(newHistory)); };
             const clearHistory = () => { setHistory([]); localStorage.removeItem('search_history_v2'); };
             const openLinkModal = (link = null) => { if (link) { setEditingLink(link); setLinkForm({ title: link.title, url: link.url, desc: link.desc || '', iconUrl: link.iconUrl || '' }); } else { setEditingLink(null); setLinkForm({ title: '', url: '', desc: '', iconUrl: '' }); } setShowLinkModal(true); };
@@ -835,7 +613,6 @@
             const handleFileUpload = (e, callback) => { const file = e.target.files[0]; if (!file) return; if (file.size > 3 * 1024 * 1024) { alert("图片有点大哦 (>3MB)！浏览器存不下啦，请压缩后再试。"); return; } const reader = new FileReader(); reader.onloadend = () => { callback(reader.result); }; reader.readAsDataURL(file); };
             const sortedEngines = useMemo(() => { const selected = SEARCH_ENGINES.find(e => e.id === searchEngine.id) || SEARCH_ENGINES[0]; const others = SEARCH_ENGINES.filter(e => e.id !== searchEngine.id); return [selected, ...others]; }, [searchEngine]);
 
-            // 核心：动态应用全局样式 + 细分文字颜色覆盖
             useEffect(() => {
                 document.body.style.fontFamily = bodyFont;
                 if (colors.textColor) { document.body.style.color = colors.textColor; } else { document.body.style.color = ''; }
@@ -848,77 +625,171 @@
                 styleTag.innerHTML = cssRules;
             }, [bodyFont, colors]);
 
+            const engineCount = SEARCH_ENGINES.length;
+            const btnWidth = 44;
+            const gap = 24;
+            const paddingOpen = 6; 
+            const expandedWidth = (btnWidth + gap) * (engineCount - 1) + btnWidth + paddingOpen * 2;
+
+            const getBlobClass = (type) => {
+                return `absolute rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-${type}`;
+            };
+
+            const isCenterMode = layoutSettings.searchPos === 'center' || !layoutSettings.showCollections;
+            const currentGridTop = isCenterMode ? (layoutSettings.gridTop_center || 0) : (layoutSettings.gridTop_top || 0);
+
+            // --- 核心逻辑优化区域 (保留最新的联动逻辑) ---
+            
+            // 1. 智能阈值：如果当前间距大于 260px (约等于下拉菜单高度)，则认为"够远"，采用绝对定位(Float)，不推挤卡片。
+            //    否则，认为"太近"，采用静态定位(Static)，推挤卡片。
+            const GAP_THRESHOLD = 260; 
+            const shouldFloat = currentGridTop > GAP_THRESHOLD;
+
+            // 2. 动态间距：如果处于"联动模式" (Push/Static) 且搜索框展开，
+            //    我们临时将卡片的 marginTop 设为一个较小的值 (24px)，
+            //    这样卡片就会"吸附"在下拉菜单底部，而不是保留原本可能很大的间距(currentGridTop)。
+            //    当搜索框收起时，恢复原本的 currentGridTop。
+            const isHistoryOpen = showHistory && suggestions.length > 0;
+            const dynamicGridTop = (isHistoryOpen && !shouldFloat) ? Math.min(currentGridTop, 24) : currentGridTop;
+
             return React.createElement("div", { className: "min-h-screen relative flex flex-col overflow-x-hidden" },
-                React.createElement(CustomCursor),
+                React.createElement(CustomCursor, { enableCursor: visualSettings.enableCursor, enableParticles: visualSettings.enableParticles }), 
                 // 背景层
-                React.createElement("div", { className: "fixed inset-0 z-0", style: { transform: 'translateZ(0)' } }, // 关键修改：这里加 translateZ(0) 是修复闪烁的核心
+                React.createElement("div", { className: "fixed inset-0 z-0", style: { transform: 'translateZ(0)' } }, 
                     bgImage && React.createElement(motion.div, { key: bgImage, initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 1 }, className: "absolute inset-0 bg-cover bg-center bg-no-repeat", style: { backgroundImage: `url(${bgImage})` } }),
                     React.createElement("div", { className: `absolute inset-0 backdrop-blur-[1px] transition-colors duration-500 ${ bgImage ? 'bg-black/20 dark:bg-black/70' : 'bg-white/10 dark:bg-slate-950/30' }` }),
-                    React.createElement("div", { className: "absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[100px] animate-float", style: { backgroundColor: colors.blobLeft, opacity: bgImage ? 0.4 : 0.2 } }),
-                    React.createElement("div", { className: "absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[100px] animate-float", style: { animationDelay: '2s', backgroundColor: colors.blobRight, opacity: bgImage ? 0.4 : 0.2 } })
+                    visualSettings.enableDynamicBlobs && React.createElement(React.Fragment, null,
+                        React.createElement("div", { className: `top-[-10%] left-[-10%] w-[60%] h-[60%] ${getBlobClass('blob-left')}`, style: { backgroundColor: colors.blobLeft, opacity: bgImage ? 0.5 : 0.3 } }),
+                        React.createElement("div", { className: `bottom-[-10%] right-[-10%] w-[60%] h-[60%] ${getBlobClass('blob-right')}`, style: { backgroundColor: colors.blobRight, opacity: bgImage ? 0.5 : 0.3 } })
+                    )
                 ),
                 // 顶部胶囊栏
                 React.createElement(motion.div, { className: "fixed top-4 left-4 z-[100] flex items-center gap-3 p-2 pr-3 rounded-full shadow-lg glass-panel", style: { '--glass-opacity': glassSettings.opacity, '--glass-blur': glassSettings.blur + 'px' }, variants: ITEM_VARIANTS, initial: "hidden", animate: "visible" },
-                    React.createElement("div", { className: "relative group cursor-pointer" }, React.createElement("div", { className: "w-10 h-10 rounded-full overflow-hidden border-2 border-white/60 dark:border-slate-500/60 shadow-sm" }, React.createElement("img", { src: DEFAULT_AVATAR, alt: "Avatar", className: "w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" }))),
+                    React.createElement("div", { onClick: () => setShowSettings(true), className: "relative group cursor-pointer" }, React.createElement("div", { className: "w-10 h-10 rounded-full overflow-hidden border-2 border-white/60 dark:border-slate-500/60 shadow-sm" }, React.createElement("img", { src: avatarUrl, alt: "Avatar", className: "w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" }))),
                     React.createElement("div", { className: "w-px h-6 bg-white/50 dark:bg-white/20 mx-1" }),
                     React.createElement("div", { className: "flex items-center gap-2" }, React.createElement("button", { onClick: toggleTheme, className: "p-2 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-700/50 hover:text-blue-500 dark:hover:text-blue-400 transition-all" }, theme === 'light' ? React.createElement(Moon, { size: 18 }) : React.createElement(Sun, { size: 18 })), React.createElement("button", { onClick: () => setShowSettings(true), className: "p-2 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-700/50 hover:text-blue-500 dark:hover:text-blue-400 transition-all" }, React.createElement(Settings, { size: 18 })))
                 ),
-                // 主要内容区 - 核心修改：animate 属性绑定到 isBgLoaded，只有背景加载完成后才触发 visible
-                React.createElement(motion.main, { variants: CONTAINER_VARIANTS, initial: "hidden", animate: isBgLoaded ? "visible" : "hidden", className: `relative z-10 flex-1 w-full max-w-[95%] xl:max-w-[1800px] mx-auto px-4 md:px-6 pb-16 flex flex-col items-center ${layoutSettings.searchPos === 'center' ? 'justify-center min-h-screen pt-20 pb-10' : 'justify-start pt-32 md:pt-24'}` },
-                    // 标题
-                    layoutSettings.showTitle && React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "text-center mb-12 select-none" },
-                        React.createElement(motion.div, { key: theme, className: "flex flex-wrap justify-center items-center gap-1 md:gap-3 cursor-default", onDragStart: (e) => e.preventDefault() },
-                            React.createElement(motion.span, { className: `text-5xl md:text-7xl font-black tracking-tight inline-block font-sans ${ colors.title1 ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 shadow-text-gradient') }`, style: getTextStyle(colors.title1), whileHover: { scale: 1.05, rotate: -2 }, whileTap: { scale: 0.95, rotate: 3 }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.text1 || 'AKISATO'),
-                            React.createElement(motion.span, { className: `text-4xl md:text-6xl font-black ${colors.particle ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-[#1E293B] dark:text-[#e6eaee] shadow-text-solid')} inline-block mx-2 font-sans`, style: getTextStyle(colors.particle), whileHover: { y: -5, rotate: 15 }, whileTap: { scale: 1.2, rotate: -20, color: "#64d2ff" }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.particleText || 'の'),
-                            React.createElement(motion.span, { className: `text-5xl md:text-7xl font-black tracking-tight inline-block font-sans ${ colors.title2 ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400 shadow-text-gradient') }`, style: getTextStyle(colors.title2), whileHover: { scale: 1.05, rotate: 2 }, whileTap: { scale: 0.95, rotate: -3 }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.text2 || '灯塔')
-                        )
-                    ),
-                    // 搜索栏
-                    React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "w-full max-w-2xl relative mb-8 z-50 flex flex-col items-center" },
-                        React.createElement(motion.div, { className: "relative w-full", whileHover: { scale: 1.01 }, transition: { type: "spring", stiffness: 400, damping: 25 } },
-                            React.createElement("div", { className: "absolute top-0 left-0 right-0 h-[64px] bg-gradient-to-r from-blue-400 to-pink-400 rounded-[2rem] blur-2xl opacity-20 hover:opacity-40 transition-opacity duration-500 pointer-events-none" }),
-                            React.createElement("form", { onSubmit: handleSearch, className: "relative flex items-center glass-panel rounded-[2rem] p-2 z-50 transition-all duration-300 hover:shadow-search-hover border border-white/20 dark:border-white/5", style: { '--glass-opacity': glassSettings.opacity, '--glass-blur': glassSettings.blur + 'px', height: '64px' } },
-                                React.createElement(motion.div, { className: "flex items-center overflow-hidden rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-sm", onMouseEnter: handleEngineMouseEnter, onMouseLeave: handleEngineMouseLeave, animate: { width: isEngineHovered ? 'auto' : '48px', paddingRight: isEngineHovered ? '6px' : '0px', paddingLeft: isEngineHovered ? '6px' : '1px' }, transition: { type: "spring", bounce: 0, duration: 0.4 }, style: { border: '1px solid rgba(255,255,255,0.1)', marginRight: '8px', flexShrink: 0, height: '48px' } }, sortedEngines.map((eng, index) => React.createElement("div", { key: eng.name, onClick: () => { setSearchEngine(eng); setIsEngineHovered(false); }, className: `engine-icon-btn relative mr-6 last:mr-0 ${searchEngine.id === eng.id ? 'engine-selected' : 'engine-unselected'}`, title: eng.name }, React.createElement(eng.logo), eng.name === 'Google AI' && React.createElement(Sparkles, { size: 10, className: "absolute top-2 right-2 text-pink-400 pointer-events-none" })))),
-                                React.createElement("div", { className: "w-px h-8 bg-slate-400/30 dark:bg-white/20 mx-1 flex-shrink-0" }),
-                                React.createElement("div", { className: "relative flex-1 h-full" },
-                                    topPrediction && topPrediction.length > searchQuery.length && searchQuery.length > 0 && React.createElement("div", { className: "absolute top-0 left-0 h-full w-full px-4 flex items-center text-lg font-bold pointer-events-none", style: { color: 'rgba(150,150,150,0.5)' } }, React.createElement("span", { className: "opacity-0" }, searchQuery), React.createElement("span", null, topPrediction.slice(searchQuery.length))),
-                                    React.createElement("input", { type: "text", ref: searchInputRef, value: searchQuery, onChange: (e) => setSearchQuery(e.target.value), onFocus: () => { setIsSearchFocused(true); setShowHistory(true); }, onBlur: () => { setIsSearchFocused(false); setTimeout(() => setShowHistory(false), 200); }, placeholder: `在 ${searchEngine.name} 上搜索...`, className: `w-full h-full bg-transparent border-none outline-none ${bgImage ? 'text-white placeholder-white/80 font-bold shadow-text-strong' : 'text-slate-800 dark:text-white placeholder-slate-500/70 dark:placeholder-slate-400/70'} px-4 text-lg font-bold z-10 relative` })
-                                ),
-                                React.createElement("button", { type: "submit", className: "p-3 w-12 h-12 rounded-full flex items-center justify-center text-white transition-transform active:scale-95 shadow-lg m-1 backdrop-blur-sm flex-shrink-0", style: { backgroundColor: colors.searchBtn, boxShadow: `0 4px 15px ${colors.searchBtn}60` } }, React.createElement(Search, { size: 24 }))
+                // 主要内容区
+                React.createElement(motion.main, { variants: CONTAINER_VARIANTS, initial: "hidden", animate: isBgLoaded ? "visible" : "hidden", className: `relative z-10 w-full max-w-[95%] xl:max-w-[1800px] mx-auto px-4 md:px-6 min-h-screen flex flex-col` },
+                    // 核心内容包裹器
+                    React.createElement("div", { className: `flex-1 w-full flex flex-col items-center py-20 transition-all duration-500 ${ isCenterMode ? 'justify-start pt-[35vh]' : 'justify-start pt-32 md:pt-24' }` },
+                        // 标题
+                        layoutSettings.showTitle && React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "text-center mb-12 select-none" },
+                            React.createElement(motion.div, { key: theme, className: "flex flex-wrap justify-center items-center gap-1 md:gap-3 cursor-default", onDragStart: (e) => e.preventDefault() },
+                                React.createElement(motion.span, { className: `text-5xl md:text-7xl font-black tracking-tight inline-block font-sans ${ colors.title1 ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400 shadow-text-gradient') }`, style: getTextStyle(colors.title1), whileHover: { scale: 1.05, rotate: -2 }, whileTap: { scale: 0.95, rotate: 3 }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.text1 || 'AKISATO'),
+                                React.createElement(motion.span, { className: `text-4xl md:text-6xl font-black ${colors.particle ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-[#1E293B] dark:text-[#e6eaee] shadow-text-solid')} inline-block mx-2 font-sans`, style: getTextStyle(colors.particle), whileHover: { y: -5, rotate: 15 }, whileTap: { scale: 1.2, rotate: -20, color: "#64d2ff" }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.particleText || 'の'),
+                                React.createElement(motion.span, { className: `text-5xl md:text-7xl font-black tracking-tight inline-block font-sans ${ colors.title2 ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400 shadow-text-gradient') }`, style: getTextStyle(colors.title2), whileHover: { scale: 1.05, rotate: 2 }, whileTap: { scale: 0.95, rotate: -3 }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.text2 || '灯塔')
                             )
                         ),
-                        React.createElement(AnimatePresence, null, (showHistory && suggestions.length > 0) && React.createElement(motion.div, { initial: { opacity: 0, scale: 0.98, y: -5, height: 0 }, animate: { opacity: 1, scale: 1, y: 0, height: "auto" }, exit: { opacity: 0, scale: 0.98, y: -5, height: 0 }, className: `${(layoutSettings.searchPos === 'top' && layoutSettings.gridTop > 250) ? "absolute top-full left-0 right-0 shadow-xl" : "w-full"} overflow-hidden rounded-[1.5rem] glass-panel z-40 origin-top mt-2 border border-white/20 no-scrollbar`, style: { '--glass-opacity': glassSettings.opacity + 0.1, '--glass-blur': glassSettings.blur + 'px', maxHeight: '300px', overflowY: 'auto' } },
-                            React.createElement("div", { className: "p-3" }, React.createElement("div", { className: "flex flex-col gap-1" }, suggestions.map((item, idx) => React.createElement("div", { key: idx, onMouseDown: (e) => e.preventDefault(), onClick: () => item.type === 'history' ? deleteHistoryItem(item.value, {stopPropagation:()=>{}}) : null, className: `group flex items-center justify-between px-4 py-3 hover:bg-white/40 dark:hover:bg-white/10 rounded-2xl cursor-pointer transition-colors ${bgImage ? 'text-white' : 'text-slate-700 dark:text-slate-200'} font-bold` },
-                                React.createElement("span", { className: "flex items-center gap-3 truncate flex-1", onClick: (e) => { e.stopPropagation(); handleSuggestionClick(item); } }, item.type === 'link' ? React.createElement(LinkIcon, { size: 14, className: "text-pink-400" }) : React.createElement(Search, { size: 14, className: "opacity-50" }), item.type === 'link' ? item.title : item.value, item.type === 'link' && React.createElement("span", { className: "text-[10px] opacity-50 ml-2 font-normal" }, item.url), item.type === 'history' && item.count > 1 && React.createElement("span", { className: "text-[9px] bg-blue-100/50 dark:bg-blue-900/50 px-1.5 rounded ml-2 opacity-60" }, `热度 ${item.count}`), item.type === 'link' && item.count > 0 && React.createElement("span", { className: "text-[9px] bg-pink-100/50 dark:bg-pink-900/50 text-pink-600 dark:text-pink-300 px-1.5 rounded ml-2 opacity-60" }, `热度 ${item.count}`)),
-                                item.type === 'history' && React.createElement("button", { onMouseDown: (e) => e.preventDefault(), onClick: (e) => deleteHistoryItem(item.value, e), className: "p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100" }, React.createElement(X, { size: 14 }))
-                            ))))
-                        ))
-                    ),
-                    // 3. 网站网格
-                    React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "w-full z-10", style: { marginTop: layoutSettings.searchPos === 'top' ? `${layoutSettings.gridTop}px` : '0' } },
-                        React.createElement("div", { className: "flex items-center gap-2 mb-6 px-4" }, React.createElement(LayoutGrid, { className: "w-6 h-6 text-pink-500 drop-shadow" }), React.createElement("h2", { className: `text-xl font-bold ${bgImage ? 'text-white shadow-text-super' : 'text-slate-800 dark:text-white'} drop-shadow-sm` }, "我的收藏"), React.createElement("span", { className: "text-xs font-bold px-2 py-0.5 bg-pink-100/80 dark:bg-pink-900/50 text-pink-600 dark:text-pink-300 rounded-lg backdrop-blur-sm" }, links.length), React.createElement("span", { className: `ml-auto text-xs ${bgImage ? 'text-white/70 shadow-text-super' : 'text-slate-400'} flex items-center gap-1` }, React.createElement(GripHorizontal, { size: 12 }), "自由拖拽")),
-                        React.createElement(motion.div, { ref: constraintsRef, variants: { visible: { transition: { staggerChildren: 0.05 } } }, className: "flex flex-wrap justify-center gap-3 md:gap-5 list-none p-0 m-0 relative w-full" },
-                            [...links, { id: 'add-btn', isAddBtn: true }].map((item) => {
-                                const cardSizeClass = "relative w-[calc(33.33%-8px)] md:w-[calc(25%-20px)] lg:w-[calc(16.66%-20px)] xl:w-[calc(12.5%-20px)] h-32 hover:z-20";
-                                return React.createElement(motion.div, { key: item.id, layoutId: item.id, layout: true, transition: { duration: 0.3, ease: "easeInOut" }, "data-sortable-id": item.id, drag: true, dragConstraints: constraintsRef, dragSnapToOrigin: true, dragElastic: 0.12, dragMomentum: false, variants: ITEM_VARIANTS, onDragStart: () => { setDraggingId(item.id); dragStartPos.current = { x: 0, y: 0 }; }, onDrag: (e, info) => handleDrag(e, info, item.id), onDragEnd: () => setDraggingId(null), className: cardSizeClass, style: { touchAction: "none" } },
-                                    React.createElement(motion.div, { className: `w-full h-full ${draggingId === item.id ? 'pointer-events-none' : ''}`, whileHover: HOVER_TARGET, whileTap: { scale: 0.95 } },
-                                        item.isAddBtn ? (
-                                            React.createElement("button", { onClick: () => openLinkModal(), className: "flex flex-col items-center justify-center p-3 glass-panel hover-glow rounded-[1.8rem] border-2 border-dashed border-slate-300/50 dark:border-slate-500/50 text-slate-500 hover:text-blue-500 hover:border-blue-400 w-full h-full transition-colors transition-shadow duration-300", style: { '--glass-opacity': glassSettings.opacity, '--glass-blur': glassSettings.blur + 'px' } }, React.createElement(Plus, { size: 28, className: "mb-1" }), React.createElement("span", { className: "text-xs font-bold" }, "添加"))
-                                        ) : (
-                                            React.createElement(GlassCard, { isDragging: draggingId === item.id, onPointerDown: (e) => { let clientX, clientY; if (e.touches && e.touches[0]) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } dragStartPos.current = { x: clientX, y: clientY }; }, onClick: (e) => { let clientX, clientY; if (e.changedTouches && e.changedTouches[0]) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } const moveX = Math.abs(clientX - dragStartPos.current.x); const moveY = Math.abs(clientY - dragStartPos.current.y); if (moveX < 5 && moveY < 5) { handleLinkClick(item); } }, hoverColor: colors.cardHover, glassSettings: glassSettings, className: "group relative p-3 flex flex-col items-center justify-center text-center cursor-pointer !rounded-[1.8rem] border-t-4 border-t-transparent hover:border-t-[color:var(--hover-color)] h-full w-full", },
-                                                React.createElement("button", { onPointerDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); openLinkModal(item); }, className: "absolute top-1 right-7 p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/30 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-75 backdrop-blur-sm z-20" }, React.createElement(Edit3, { size: 14 })),
-                                                React.createElement("button", { onPointerDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); deleteLink(item.id, e); }, className: "absolute top-1 right-1 p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/30 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-75 backdrop-blur-sm z-10" }, React.createElement(Trash2, { size: 14 })),
-                                                React.createElement("div", { className: "w-10 h-10 mb-2 rounded-2xl bg-white/20 dark:bg-slate-800/20 p-2 shadow-inner flex items-center justify-center overflow-hidden group-hover:shadow-md transition-all backdrop-blur-sm" }, React.createElement("img", { src: getFavicon(item), alt: item.title, className: "w-full h-full object-contain pointer-events-none rounded-lg", onError: (e) => { if (e.target.src !== 'https://img.icons8.com/ios/50/globe--v1.png') e.target.src = 'https://img.icons8.com/ios/50/globe--v1.png'; } })),
-                                                React.createElement("h3", { className: `font-bold ${bgImage ? 'text-white shadow-text-super' : 'text-slate-800 dark:text-slate-100'} text-xs mb-0.5 w-full truncate pointer-events-none` }, item.title),
-                                                React.createElement("p", { className: `text-[10px] ${bgImage ? 'text-white/80 shadow-text-super' : 'text-slate-600 dark:text-slate-300'} line-clamp-1 w-full opacity-0 group-hover:opacity-100 transition-opacity h-3 font-medium pointer-events-none` }, item.desc)
+                        // 搜索栏
+                        React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "w-full max-w-2xl relative mb-8 z-50 flex flex-col items-center" },
+                            React.createElement(motion.div, { className: "relative w-full", whileHover: { scale: 1.01 }, transition: { type: "spring", stiffness: 400, damping: 25 } },
+                                React.createElement("div", { className: "absolute top-0 left-0 right-0 h-[64px] bg-gradient-to-r from-blue-400 to-pink-400 rounded-[2rem] blur-2xl opacity-20 hover:opacity-40 transition-opacity duration-500 pointer-events-none" }),
+                                React.createElement("form", { onSubmit: handleSearch, className: "relative flex items-center glass-panel rounded-[2rem] p-2 z-50 transition-all duration-300 hover:shadow-search-hover border border-white/20 dark:border-white/5", style: { '--glass-opacity': glassSettings.opacity, '--glass-blur': glassSettings.blur + 'px', height: '64px' } },
+                                    // 搜索引擎选择器逻辑
+                                    React.createElement(motion.div, { 
+                                        ref: engineMenuRef, 
+                                        className: "flex items-center overflow-hidden rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-sm cursor-pointer", 
+                                        animate: { 
+                                            width: isEngineMenuOpen ? expandedWidth : 48, 
+                                            paddingRight: isEngineMenuOpen ? 6 : 2, 
+                                            paddingLeft: isEngineMenuOpen ? 6 : 2   
+                                        }, 
+                                        transition: { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.4 }, 
+                                        style: { border: '1px solid rgba(255,255,255,0.1)', marginRight: '8px', flexShrink: 0, height: '48px' } 
+                                    }, sortedEngines.map((eng, index) => React.createElement("div", { 
+                                        key: eng.name, 
+                                        onClick: (e) => { 
+                                            e.stopPropagation(); 
+                                            if (!isEngineMenuOpen) {
+                                                setIsEngineMenuOpen(true);
+                                            } else {
+                                                setSearchEngine(eng); 
+                                                setIsEngineMenuOpen(false); 
+                                            }
+                                        }, 
+                                        className: `engine-icon-btn relative mr-6 last:mr-0 ${searchEngine.id === eng.id ? 'engine-selected' : 'engine-unselected'}`, 
+                                        title: eng.name 
+                                    }, React.createElement(eng.logo), eng.name === 'Google AI' && React.createElement(Sparkles, { size: 10, className: "absolute top-2 right-2 text-pink-400 pointer-events-none" })))),
+                                    
+                                    React.createElement("div", { className: "w-px h-8 bg-slate-400/30 dark:bg-white/20 mx-1 flex-shrink-0" }),
+                                    React.createElement("div", { className: "relative flex-1 h-full" },
+                                        topPrediction && topPrediction.length > searchQuery.length && searchQuery.length > 0 && React.createElement("div", { className: "absolute top-0 left-0 h-full w-full px-4 flex items-center text-lg font-bold pointer-events-none", style: { color: 'rgba(150,150,150,0.5)' } }, React.createElement("span", { className: "opacity-0" }, searchQuery), React.createElement("span", null, topPrediction.slice(searchQuery.length))),
+                                        React.createElement("input", { 
+                                            type: "text", 
+                                            ref: searchInputRef, 
+                                            value: searchQuery, 
+                                            onChange: (e) => setSearchQuery(e.target.value), 
+                                            onFocus: () => { setIsSearchFocused(true); if (!isAutoFocusing.current) setShowHistory(true); }, 
+                                            onClick: () => setShowHistory(true),
+                                            onBlur: () => { setIsSearchFocused(false); setTimeout(() => setShowHistory(false), 200); }, 
+                                            placeholder: `在 ${searchEngine.name} 上搜索...`, 
+                                            className: `w-full h-full bg-transparent border-none outline-none ${bgImage ? 'text-white placeholder-white/80 font-bold shadow-text-strong' : 'text-slate-800 dark:text-white placeholder-slate-500/70 dark:placeholder-slate-400/70'} px-4 text-lg font-bold z-10 relative` 
+                                        })
+                                    ),
+                                    React.createElement("button", { type: "submit", className: "p-3 w-12 h-12 rounded-full flex items-center justify-center text-white transition-transform active:scale-95 shadow-lg m-1 backdrop-blur-sm flex-shrink-0", style: { backgroundColor: colors.searchBtn, boxShadow: `0 4px 15px ${colors.searchBtn}60` } }, React.createElement(Search, { size: 24 }))
+                                )
+                            ),
+                            // 搜索记录框：联动/悬浮逻辑 (使用最新逻辑)
+                            React.createElement(AnimatePresence, null, (showHistory && suggestions.length > 0) && React.createElement(motion.div, { initial: { opacity: 0, scale: 0.98, y: -5, height: 0 }, animate: { opacity: 1, scale: 1, y: 0, height: "auto" }, exit: { opacity: 0, scale: 0.98, y: -5, height: 0 }, 
+                                // 核心修复：根据 shouldFloat 决定是 absolute (悬浮) 还是 w-full (联动推挤)
+                                className: `${shouldFloat ? "absolute top-full left-0 right-0 shadow-xl" : "w-full"} overflow-hidden rounded-[1.5rem] glass-panel z-40 origin-top mt-2 border border-white/20 no-scrollbar`, 
+                                style: { '--glass-opacity': glassSettings.opacity + 0.1, '--glass-blur': glassSettings.blur + 'px', maxHeight: '300px', overflowY: 'auto' } },
+                                React.createElement("div", { className: "p-3" }, React.createElement("div", { className: "flex flex-col gap-1" }, suggestions.map((item, idx) => React.createElement("div", { key: idx, onMouseDown: (e) => e.preventDefault(), onClick: () => item.type === 'history' ? deleteHistoryItem(item.value, {stopPropagation:()=>{}}) : null, className: `group flex items-center justify-between px-4 py-3 hover:bg-white/40 dark:hover:bg-white/10 rounded-2xl cursor-pointer transition-colors ${bgImage ? 'text-white' : 'text-slate-700 dark:text-slate-200'} font-bold` },
+                                    React.createElement("span", { className: "flex items-center gap-3 truncate flex-1", onClick: (e) => { e.stopPropagation(); handleSuggestionClick(item); } }, item.type === 'link' ? React.createElement(LinkIcon, { size: 14, className: "text-pink-400" }) : React.createElement(Search, { size: 14, className: "opacity-50" }), item.type === 'link' ? item.title : item.value, item.type === 'link' && React.createElement("span", { className: "text-[10px] opacity-50 ml-2 font-normal" }, item.url), item.type === 'history' && item.count > 1 && React.createElement("span", { className: "text-[9px] bg-blue-100/50 dark:bg-blue-900/50 px-1.5 rounded ml-2 opacity-60" }, `热度 ${item.count}`), item.type === 'link' && item.count > 0 && React.createElement("span", { className: "text-[9px] bg-pink-100/50 dark:bg-pink-900/50 text-pink-600 dark:text-pink-300 px-1.5 rounded ml-2 opacity-60" }, `热度 ${item.count}`)),
+                                    item.type === 'history' && React.createElement("button", { onMouseDown: (e) => e.preventDefault(), onClick: (e) => deleteHistoryItem(item.value, e), className: "p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100" }, React.createElement(X, { size: 14 }))
+                                ))))
+                            ))
+                        ),
+                        // 3. 网站网格 - 控制显示
+                        // 核心修复：使用 animate 动态过渡 marginTop，消除空白
+                        layoutSettings.showCollections && React.createElement(motion.div, { 
+                            variants: ITEM_VARIANTS, 
+                            className: "w-full z-10", 
+                            animate: { marginTop: dynamicGridTop },
+                            transition: { type: "spring", stiffness: 300, damping: 30 }
+                        },
+                            React.createElement("div", { className: "flex items-center gap-2 mb-6 px-4" }, 
+                                React.createElement(LayoutGrid, { className: "w-6 h-6 drop-shadow", style: { color: colors.cardHover } }), 
+                                React.createElement("h2", { className: `text-xl font-bold ${bgImage ? 'text-white shadow-text-super' : 'text-slate-800 dark:text-white'} drop-shadow-sm` }, "我的收藏"), 
+                                React.createElement("span", { className: "text-xs font-bold px-2 py-0.5 rounded-lg backdrop-blur-sm transition-colors", style: { color: colors.cardHover, backgroundColor: colors.cardHover + '20' } }, links.length), 
+                            ),
+                            React.createElement(motion.div, { ref: constraintsRef, variants: { visible: { transition: { staggerChildren: 0.05 } } }, className: `flex flex-wrap justify-center gap-${layoutSettings.cardGap || 5} list-none p-0 m-0 relative w-full` },
+                                [...links, { id: 'add-btn', isAddBtn: true }].map((item) => {
+                                    const baseWidth = 12.5 * (layoutSettings.cardSize / 100);
+                                    return React.createElement(motion.div, { key: item.id, layoutId: item.id, layout: true, transition: { duration: 0.3, ease: "easeInOut" }, "data-sortable-id": item.id, drag: true, dragConstraints: constraintsRef, dragSnapToOrigin: true, dragElastic: 0.12, dragMomentum: false, variants: ITEM_VARIANTS, onDragStart: () => { setDraggingId(item.id); dragStartPos.current = { x: 0, y: 0 }; }, onDrag: (e, info) => handleDrag(e, info, item.id), onDragEnd: () => setDraggingId(null), 
+                                        className: `relative ${window.innerWidth > 768 ? '' : 'w-[calc(33.33%-8px)]'} h-32 hover:z-20`, 
+                                        style: { touchAction: "none", width: window.innerWidth > 768 ? `calc(${baseWidth}% - 20px)` : undefined } 
+                                    },
+                                        React.createElement(motion.div, { className: `w-full h-full ${draggingId === item.id ? 'pointer-events-none' : ''}`, whileHover: HOVER_TARGET, whileTap: { scale: 0.95 } },
+                                            item.isAddBtn ? (
+                                                React.createElement("button", { onClick: () => openLinkModal(), className: "flex flex-col items-center justify-center p-3 glass-panel hover-glow rounded-[1.8rem] border-2 border-dashed border-slate-300/50 dark:border-slate-500/50 text-slate-500 hover:text-blue-500 hover:border-blue-400 w-full h-full transition-colors transition-shadow duration-300", style: { '--glass-opacity': glassSettings.opacity, '--glass-blur': glassSettings.blur + 'px' } }, React.createElement(Plus, { size: 28, className: "mb-1" }), React.createElement("span", { className: "text-xs font-bold" }, "添加"))
+                                            ) : (
+                                                React.createElement(GlassCard, { 
+                                                    ref: { current: { id: item.id } }, 
+                                                    isDragging: draggingId === item.id, 
+                                                    onPointerDown: (e) => { let clientX, clientY; if (e.touches && e.touches[0]) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } dragStartPos.current = { x: clientX, y: clientY }; }, 
+                                                    onClick: (e) => { let clientX, clientY; if (e.changedTouches && e.changedTouches[0]) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } const moveX = Math.abs(clientX - dragStartPos.current.x); const moveY = Math.abs(clientY - dragStartPos.current.y); if (moveX < 5 && moveY < 5) { handleLinkClick(item); } }, 
+                                                    hoverColor: colors.cardHover, 
+                                                    glassSettings: glassSettings, 
+                                                    className: `group relative p-3 flex flex-col items-center justify-center text-center cursor-pointer !rounded-[1.8rem] !border-t-4 border-t-transparent glass-card-${item.id} h-full w-full` 
+                                                },
+                                                    React.createElement("button", { onPointerDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); openLinkModal(item); }, className: "absolute top-1 right-7 p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/30 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-75 backdrop-blur-sm z-20" }, React.createElement(Edit3, { size: 14 })),
+                                                    React.createElement("button", { onPointerDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); deleteLink(item.id, e); }, className: "absolute top-1 right-1 p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/30 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-75 backdrop-blur-sm z-10" }, React.createElement(Trash2, { size: 14 })),
+                                                    React.createElement("div", { className: "w-10 h-10 mb-2 rounded-2xl bg-white/20 dark:bg-slate-800/20 p-2 shadow-inner flex items-center justify-center overflow-hidden group-hover:shadow-md transition-all backdrop-blur-sm" }, React.createElement("img", { src: getFavicon(item), alt: item.title, className: "w-full h-full object-contain pointer-events-none rounded-lg", onError: (e) => { if (e.target.src !== 'https://img.icons8.com/ios/50/globe--v1.png') e.target.src = 'https://img.icons8.com/ios/50/globe--v1.png'; } })),
+                                                    React.createElement("h3", { className: `font-bold ${bgImage ? 'text-white shadow-text-super' : 'text-slate-800 dark:text-slate-100'} text-xs mb-0.5 w-full truncate pointer-events-none` }, item.title),
+                                                    React.createElement("p", { className: `text-[10px] ${bgImage ? 'text-white/80 shadow-text-super' : 'text-slate-600 dark:text-slate-300'} line-clamp-1 w-full opacity-0 group-hover:opacity-100 transition-opacity h-3 font-medium pointer-events-none` }, item.desc)
+                                                )
                                             )
                                         )
-                                    )
-                                );
-                            })
+                                    );
+                                })
+                            )
                         )
                     ),
-                    React.createElement("footer", { className: `relative z-10 py-8 text-center ${bgImage ? 'text-white/80 shadow-text-super' : 'text-slate-600 dark:text-slate-400'} text-sm font-bold drop-shadow-sm` }, React.createElement("p", null, "© 2025 AKISATO Navigation | Designed with React & Tailwind")),
+                    // Sticky Footer
+                    React.createElement("footer", { className: `relative z-10 py-8 text-center ${bgImage ? 'text-white/80 shadow-text-super' : 'text-slate-600 dark:text-slate-400'} text-sm font-bold drop-shadow-sm mt-auto` }, React.createElement("p", null, "© By @AKISATO 2025")),
+                    // Settings Modal
                     React.createElement(Modal, { isOpen: showLinkModal, onClose: () => setShowLinkModal(false), title: editingLink ? "编辑收藏" : "添加新网站", glassSettings: glassSettings }, React.createElement("div", { className: "space-y-4" },
                         React.createElement("div", null, React.createElement("label", { className: "block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1" }, "网站名称"), React.createElement("input", { type: "text", className: "w-full px-4 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-transparent focus:border-blue-500 outline-none transition-colors dark:text-white font-bold backdrop-blur-sm", placeholder: "例如: Bilibili", value: linkForm.title, onChange: e => setLinkForm({...linkForm, title: e.target.value}) })),
                         React.createElement("div", null, React.createElement("label", { className: "block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1" }, "网址 (URL)"), React.createElement("input", { type: "text", className: "w-full px-4 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-transparent focus:border-blue-500 outline-none transition-colors dark:text-white font-medium backdrop-blur-sm", placeholder: "例如: bilibili.com", value: linkForm.url, onChange: e => setLinkForm({...linkForm, url: e.target.value}) })),
@@ -927,13 +798,41 @@
                         React.createElement("button", { onClick: saveLink, className: "w-full py-3 mt-2 bg-gradient-to-r from-blue-500 to-pink-500 text-white rounded-2xl font-black shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:-translate-y-0.5 transition-all" }, editingLink ? "保存修改" : "确认添加")
                     )),
                     React.createElement(Modal, { isOpen: showSettings, onClose: () => setShowSettings(false), title: "个性化设置", glassSettings: glassSettings }, React.createElement("div", { className: "space-y-8" },
-                        React.createElement("div", null, React.createElement(SectionHeader, { icon: Layout, title: "布局设置" }), React.createElement("div", { className: "space-y-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement("div", { className: "flex items-center justify-between" }, React.createElement("span", { className: "settings-label text-xs font-bold text-slate-600 dark:text-slate-300" }, "显示标题"), React.createElement("button", { onClick: () => updateLayout('showTitle', !layoutSettings.showTitle), className: `w-12 h-6 rounded-full p-1 transition-colors ${layoutSettings.showTitle ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}` }, React.createElement("div", { className: `w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${layoutSettings.showTitle ? 'translate-x-6' : ''}` }))), React.createElement("div", { className: "flex gap-2 pt-2 border-t border-slate-200/50 dark:border-white/10" }, React.createElement("div", { className: "flex-1" }, React.createElement("label", { className: "settings-label text-[10px] text-slate-500 mb-1 block" }, "前段文字"), React.createElement("input", { type: "text", className: "w-full px-2 py-1 text-xs text-center rounded-lg bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 outline-none", value: layoutSettings.text1 || 'AKISATO', onChange: (e) => updateLayout('text1', e.target.value) })), React.createElement("div", { className: "w-12" }, React.createElement("label", { className: "settings-label text-[10px] text-slate-500 mb-1 block text-center" }, "连接"), React.createElement("input", { type: "text", maxLength: 4, className: "w-full px-2 py-1 text-xs text-center rounded-lg bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 outline-none", value: layoutSettings.particleText || 'の', onChange: (e) => updateLayout('particleText', e.target.value) })), React.createElement("div", { className: "flex-1" }, React.createElement("label", { className: "settings-label text-[10px] text-slate-500 mb-1 block" }, "后段文字"), React.createElement("input", { type: "text", className: "w-full px-2 py-1 text-xs text-center rounded-lg bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 outline-none", value: layoutSettings.text2 || '灯塔', onChange: (e) => updateLayout('text2', e.target.value) }))), React.createElement("div", { className: "flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-white/10" }, React.createElement("span", { className: "settings-label text-xs font-bold text-slate-600 dark:text-slate-300" }, "搜索框位置"), React.createElement("div", { className: "flex bg-slate-200 dark:bg-slate-700/50 rounded-lg p-1" }, [{id:'center', label:'居中', icon: Monitor}, {id:'top', label:'顶部', icon: ArrowUp}].map(pos => React.createElement("button", { key: pos.id, onClick: () => updateLayout('searchPos', pos.id), className: `px-3 py-1 text-[10px] font-bold rounded-md flex items-center gap-1 transition-all ${layoutSettings.searchPos === pos.id ? 'bg-white dark:bg-slate-600 text-blue-500 shadow-sm' : 'text-slate-500 dark:text-slate-400'}` }, React.createElement(pos.icon, { size: 10 }), pos.label)))), layoutSettings.searchPos === 'top' && React.createElement("div", { className: "pt-2 border-t border-slate-200/50 dark:border-white/10" }, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-1" }, React.createElement("span", { className: "settings-label font-bold" }, "收藏夹垂直偏移"), React.createElement("span", null, layoutSettings.gridTop + "px")), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "0", max: "500", step: "10", value: layoutSettings.gridTop || 0, onChange: (e) => updateLayout('gridTop', e.target.value) }))))),
+                        React.createElement("div", null, React.createElement(SectionHeader, { icon: User, title: "身份形象" }), React.createElement("div", { className: "space-y-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, 
+                            React.createElement("div", null, React.createElement("label", { className: "settings-label text-xs font-bold text-slate-500 mb-2 block" }, "头像设置"), React.createElement("div", { className: "flex gap-2" }, React.createElement("input", { type: "text", value: avatarUrl, onChange: e => updateAvatar(e.target.value), className: "flex-1 px-3 py-2 rounded-xl bg-white/50 dark:bg-slate-700/50 border border-transparent focus:border-blue-500 outline-none text-xs", placeholder: "头像链接..." }), React.createElement("button", { onClick: () => avatarInputRef.current.click(), className: "p-2 bg-white/50 hover:bg-white rounded-xl" }, React.createElement(Upload, { size: 16 })), React.createElement("input", { type: "file", ref: avatarInputRef, className: "hidden", accept: "image/*", onChange: e => handleFileUpload(e, updateAvatar) }))),
+                            React.createElement("div", null, React.createElement("label", { className: "settings-label text-xs font-bold text-slate-500 mb-2 block" }, "网页图标 (Favicon)"), React.createElement("div", { className: "flex gap-2" }, React.createElement("input", { type: "text", value: faviconUrl, onChange: e => updateFavicon(e.target.value), className: "flex-1 px-3 py-2 rounded-xl bg-white/50 dark:bg-slate-700/50 border border-transparent focus:border-blue-500 outline-none text-xs", placeholder: "图标链接..." }), React.createElement("button", { onClick: () => faviconInputRef.current.click(), className: "p-2 bg-white/50 hover:bg-white rounded-xl" }, React.createElement(Upload, { size: 16 })), React.createElement("input", { type: "file", ref: faviconInputRef, className: "hidden", accept: "image/*", onChange: e => handleFileUpload(e, updateFavicon) })))
+                        )),
+                        React.createElement("div", null, React.createElement(SectionHeader, { icon: Sparkles, title: "视觉特效" }), React.createElement("div", { className: "grid grid-cols-2 gap-3" }, 
+                            [{key: 'enableCursor', label: '鼠标光圈', icon: MousePointer}, {key: 'enableParticles', label: '粒子拖尾', icon: Sparkles}, {key: 'enableDynamicBlobs', label: '动态流体背景', icon: Frame}].map(opt => 
+                                React.createElement("button", { key: opt.key, onClick: () => updateVisuals(opt.key, !visualSettings[opt.key]), className: `flex items-center gap-2 p-3 rounded-xl transition-all border ${visualSettings[opt.key] ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/30' : 'bg-white/30 dark:bg-slate-800/30 border-transparent hover:bg-white/50 text-slate-600 dark:text-slate-300'}` }, React.createElement(opt.icon, { size: 16 }), React.createElement("span", { className: "text-xs font-bold" }, opt.label))
+                            )
+                        )),
+                        React.createElement("div", null, React.createElement(SectionHeader, { icon: Layout, title: "布局设置" }), React.createElement("div", { className: "space-y-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, 
+                            React.createElement("div", { className: "flex items-center justify-between" }, React.createElement("span", { className: "settings-label text-xs font-bold text-slate-600 dark:text-slate-300" }, "显示标题"), React.createElement("button", { onClick: () => updateLayout('showTitle', !layoutSettings.showTitle), className: `w-12 h-6 rounded-full p-1 transition-colors ${layoutSettings.showTitle ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}` }, React.createElement("div", { className: `w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${layoutSettings.showTitle ? 'translate-x-6' : ''}` }))), 
+                            React.createElement("div", { className: "flex gap-2 pt-2 border-t border-slate-200/50 dark:border-white/10" }, React.createElement("div", { className: "flex-1" }, React.createElement("label", { className: "settings-label text-[10px] text-slate-500 mb-1 block" }, "前段文字"), React.createElement("input", { type: "text", className: "w-full px-2 py-1 text-xs text-center rounded-lg bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 outline-none", value: layoutSettings.text1 || 'AKISATO', onChange: (e) => updateLayout('text1', e.target.value) })), React.createElement("div", { className: "w-12" }, React.createElement("label", { className: "settings-label text-[10px] text-slate-500 mb-1 block text-center" }, "连接"), React.createElement("input", { type: "text", maxLength: 4, className: "w-full px-2 py-1 text-xs text-center rounded-lg bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 outline-none", value: layoutSettings.particleText || 'の', onChange: (e) => updateLayout('particleText', e.target.value) })), React.createElement("div", { className: "flex-1" }, React.createElement("label", { className: "settings-label text-[10px] text-slate-500 mb-1 block" }, "后段文字"), React.createElement("input", { type: "text", className: "w-full px-2 py-1 text-xs text-center rounded-lg bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 outline-none", value: layoutSettings.text2 || '灯塔', onChange: (e) => updateLayout('text2', e.target.value) }))), 
+                            React.createElement("div", { className: "flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-white/10" }, React.createElement("span", { className: "settings-label text-xs font-bold text-slate-600 dark:text-slate-300" }, "搜索框位置"), React.createElement("div", { className: "flex bg-slate-200 dark:bg-slate-700/50 rounded-lg p-1" }, [{id:'center', label:'居中', icon: Monitor}, {id:'top', label:'顶部', icon: ArrowUp}].map(pos => React.createElement("button", { key: pos.id, onClick: () => updateLayout('searchPos', pos.id), className: `px-3 py-1 text-[10px] font-bold rounded-md flex items-center gap-1 transition-all ${layoutSettings.searchPos === pos.id ? 'bg-white dark:bg-slate-600 text-blue-500 shadow-sm' : 'text-slate-500 dark:text-slate-400'}` }, React.createElement(pos.icon, { size: 10 }), pos.label)))), 
+                            React.createElement("div", { className: "pt-2 border-t border-slate-200/50 dark:border-white/10" },
+                                React.createElement("div", { className: "flex items-center justify-between mb-3" }, React.createElement("span", { className: "settings-label text-xs font-bold text-slate-600 dark:text-slate-300" }, "显示我的收藏"), React.createElement("button", { onClick: () => updateLayout('showCollections', !layoutSettings.showCollections), className: `w-12 h-6 rounded-full p-1 transition-colors ${layoutSettings.showCollections ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}` }, React.createElement("div", { className: `w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${layoutSettings.showCollections ? 'translate-x-6' : ''}` }))),
+                                layoutSettings.showCollections && React.createElement(React.Fragment, null,
+                                    React.createElement("div", { className: "mb-2" }, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-1" }, React.createElement("span", null, "卡片大小"), React.createElement("span", null, (layoutSettings.cardSize || 100) + "%")), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "50", max: "150", step: "5", value: layoutSettings.cardSize || 100, onChange: (e) => updateLayout('cardSize', e.target.value) }))),
+                                    React.createElement("div", { className: "mb-2" }, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-1" }, React.createElement("span", null, "卡片间距"), React.createElement("span", null, "Lv." + (layoutSettings.cardGap || 5))), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "1", max: "10", step: "1", value: layoutSettings.cardGap || 5, onChange: (e) => updateLayout('cardGap', e.target.value) }))),
+                                    React.createElement("div", null, 
+                                        React.createElement("div", { className: "flex justify-between items-center text-xs text-slate-500 mb-1" }, 
+                                            React.createElement("span", { className: "settings-label font-bold" }, `垂直偏移微调 (${isCenterMode ? '居中' : '顶部'})`), 
+                                            React.createElement("input", { type: "number", className: "w-16 px-2 py-0.5 text-xs text-right bg-transparent border-b border-slate-300 dark:border-slate-600 outline-none focus:border-blue-500 font-mono", value: currentGridTop, onChange: (e) => updateLayout(isCenterMode ? 'gridTop_center' : 'gridTop_top', Number(e.target.value)) })
+                                        ), 
+                                        React.createElement("div", { className: "slider-container" }, 
+                                            React.createElement("input", { type: "range", min: "0", max: "500", step: "10", value: Math.min(Math.max(currentGridTop, 0), 500), onChange: (e) => updateLayout(isCenterMode ? 'gridTop_center' : 'gridTop_top', Number(e.target.value)) })
+                                        )
+                                    )
+                                )
+                            )
+                        )),
                         React.createElement("div", null, React.createElement(SectionHeader, { icon: ImageIcon, title: "外观样式" }), React.createElement("div", { className: "space-y-4" }, React.createElement("div", null, React.createElement("label", { className: "settings-label block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2" }, "全局字体"), React.createElement("div", { className: "relative" }, React.createElement("input", { type: "text", value: bodyFont, onChange: (e) => updateBodyFont(e.target.value), className: "w-full px-4 py-2 text-xs rounded-xl bg-white/50 dark:bg-slate-800/50 border border-transparent focus:border-blue-500 outline-none font-mono", placeholder: "输入字体名称 (如: Microsoft YaHei)" }))), React.createElement("div", { className: "bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement("label", { className: "settings-label block text-xs font-bold text-slate-700 dark:text-slate-300 mb-3" }, "玻璃拟态效果"), React.createElement("div", { className: "space-y-4" }, React.createElement("div", null, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-2" }, React.createElement("span", null, "透明度"), React.createElement("span", null, Math.round(glassSettings.opacity * 100) + "%")), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "0.05", max: "0.9", step: "0.05", value: glassSettings.opacity, onChange: (e) => updateGlass('opacity', e.target.value) }))), React.createElement("div", null, React.createElement("div", { className: "flex justify-between text-xs text-slate-500 mb-2" }, React.createElement("span", null, "模糊度"), React.createElement("span", null, glassSettings.blur + "px")), React.createElement("div", { className: "slider-container" }, React.createElement("input", { type: "range", min: "0", max: "60", step: "2", value: glassSettings.blur, onChange: (e) => updateGlass('blur', e.target.value) }))))), React.createElement("div", null, React.createElement("label", { className: "settings-label block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2" }, "背景壁纸"), React.createElement("div", { className: "grid grid-cols-3 gap-3 mb-4" }, PRESET_BGS.map(preset => React.createElement("div", { key: preset.id, onClick: () => updateBg(preset.value), className: `relative aspect-[16/9] rounded-xl overflow-hidden cursor-pointer border-2 transition-all hover:scale-105 ${bgImage === preset.value ? 'border-blue-500 ring-2 ring-blue-200' : 'border-transparent hover:border-gray-300'}` }, preset.previewColor ? React.createElement("div", { className: `w-full h-full ${preset.previewColor}` }) : React.createElement("img", { src: preset.value, className: "w-full h-full object-cover" }), bgImage === preset.value && React.createElement("div", { className: "absolute inset-0 bg-blue-500/20 flex items-center justify-center" }, React.createElement("div", { className: "bg-blue-500 rounded-full p-1" }, React.createElement(Check, { size: 12, className: "text-white" }))), React.createElement("div", { className: "absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-1 text-center font-bold" }, preset.name)))), React.createElement("div", { className: "flex flex-col gap-2" }, React.createElement("div", { className: "flex gap-2" }, React.createElement("input", { type: "text", className: "flex-1 px-4 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-transparent focus:border-pink-500 outline-none transition-colors text-xs dark:text-white backdrop-blur-sm", value: bgImage, onChange: e => updateBg(e.target.value), placeholder: "图片直链..." }), React.createElement("button", { onClick: () => bgFileInputRef.current.click(), className: "p-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 dark:bg-slate-700 dark:text-blue-400 transition-colors shrink-0", title: "上传本地壁纸" }, React.createElement(Upload, { size: 20 }))), React.createElement("input", { type: "file", ref: bgFileInputRef, accept: "image/*", className: "file-input", onChange: (e) => handleFileUpload(e, updateBg) }))))),
                         React.createElement("div", null, React.createElement(SectionHeader, { icon: Search, title: "搜索引擎" }), React.createElement("div", { className: "grid grid-cols-3 gap-2" }, SEARCH_ENGINES.map(engine => React.createElement("button", { key: engine.id, onClick: () => setDefaultEngine(engine), className: `flex flex-col items-center justify-center p-2 rounded-xl transition-all ${searchEngine.id === engine.id ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 text-blue-600 dark:text-blue-300' : 'bg-white/20 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-600 text-slate-500 hover:bg-white/40'}` }, React.createElement(engine.logo, { className: "w-6 h-6 mb-1" }), React.createElement("span", { className: "text-xs font-bold" }, engine.name))))),
-                        React.createElement("div", null, React.createElement(SectionHeader, { icon: Palette, title: "主题颜色" }), React.createElement("div", { className: "space-y-6" }, React.createElement("div", null, React.createElement("div", { className: "text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider" }, "首页视觉元素"), React.createElement("div", { className: "grid grid-cols-3 gap-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement(ColorPicker, { color: colors.searchBtn, label: "搜索按钮", onChange: (val) => updateColor('searchBtn', val) }), React.createElement(ColorPicker, { color: colors.blobLeft, label: "左侧光晕", onChange: (val) => updateColor('blobLeft', val) }), React.createElement(ColorPicker, { color: colors.blobRight, label: "右侧光晕", onChange: (val) => updateColor('blobRight', val) }), React.createElement(ColorPicker, { color: colors.title1, label: "标题前段", onChange: (val) => updateColor('title1', val) }), React.createElement(ColorPicker, { color: colors.particle, label: "连接词", onChange: (val) => updateColor('particle', val) }), React.createElement(ColorPicker, { color: colors.title2, label: "标题后段", onChange: (val) => updateColor('title2', val) }), React.createElement(ColorPicker, { color: colors.cardHover, label: "卡片悬停", onChange: (val) => updateColor('cardHover', val) }))), React.createElement("div", null, React.createElement("div", { className: "text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider" }, "界面文字"), React.createElement("div", { className: "grid grid-cols-3 gap-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement(ColorPicker, { color: colors.textColor, label: "全局主色", onChange: (val) => updateColor('textColor', val) }), React.createElement(ColorPicker, { color: colors.subTextColor, label: "次要文字", onChange: (val) => updateColor('subTextColor', val) }), React.createElement(ColorPicker, { color: colors.modalTitleColor, label: "弹窗标题", onChange: (val) => updateColor('modalTitleColor', val) }), React.createElement(ColorPicker, { color: colors.sectionTitleColor, label: "分组标题", onChange: (val) => updateColor('sectionTitleColor', val) }), React.createElement(ColorPicker, { color: colors.labelColor, label: "选项标签", onChange: (val) => updateColor('labelColor', val) }))))),
+                        React.createElement("div", null, React.createElement(SectionHeader, { icon: Palette, title: "主题颜色" }), React.createElement("div", { className: "space-y-6" }, React.createElement("div", null, React.createElement("div", { className: "text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider" }, "首页视觉元素"), React.createElement("div", { className: "grid grid-cols-3 gap-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement(ColorPicker, { color: colors.searchBtn, label: "搜索按钮", onChange: (val) => updateColor('searchBtn', val) }), React.createElement(ColorPicker, { color: colors.blobLeft, label: "左侧光晕", onChange: (val) => updateColor('blobLeft', val) }), React.createElement(ColorPicker, { color: colors.blobRight, label: "右侧光晕", onChange: (val) => updateColor('blobRight', val) }), React.createElement(ColorPicker, { color: colors.title1, label: "标题前段", onChange: (val) => updateColor('title1', val) }), React.createElement(ColorPicker, { color: colors.particle, label: "连接词", onChange: (val) => updateColor('particle', val) }), React.createElement(ColorPicker, { color: colors.title2, label: "标题后段", onChange: (val) => updateColor('title2', val) }), React.createElement(ColorPicker, { color: colors.cardHover, label: "卡片悬停/主题色", onChange: (val) => updateColor('cardHover', val) }))), React.createElement("div", null, React.createElement("div", { className: "text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider" }, "界面文字"), React.createElement("div", { className: "grid grid-cols-3 gap-4 bg-white/30 dark:bg-black/20 p-4 rounded-2xl" }, React.createElement(ColorPicker, { color: colors.textColor, label: "全局主色", onChange: (val) => updateColor('textColor', val) }), React.createElement(ColorPicker, { color: colors.subTextColor, label: "次要文字", onChange: (val) => updateColor('subTextColor', val) }), React.createElement(ColorPicker, { color: colors.modalTitleColor, label: "弹窗标题", onChange: (val) => updateColor('modalTitleColor', val) }), React.createElement(ColorPicker, { color: colors.sectionTitleColor, label: "分组标题", onChange: (val) => updateColor('sectionTitleColor', val) }), React.createElement(ColorPicker, { color: colors.labelColor, label: "选项标签", onChange: (val) => updateColor('labelColor', val) }))))),
                         React.createElement("div", { className: "pt-4 border-t border-slate-200 dark:border-slate-700" }, 
                             React.createElement("button", { onClick: resetSettings, className: "w-full py-3 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-colors font-bold" }, React.createElement(RotateCcw, { size: 16 }), "重置所有数据"),
-                            // 在这里添加不蒜子组件
                             React.createElement(BusuanziStats)
                         )
                     ))
