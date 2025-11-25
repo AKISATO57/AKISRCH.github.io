@@ -92,35 +92,19 @@
             padding: 0;
         }
         
-        /* --- 毛玻璃核心样式 (修复版) --- */
+        /* --- 毛玻璃核心样式 --- */
         .glass-panel {
             --glass-opacity: 0.2;
             --glass-blur: 25px;
-            /* 使用 fallback 颜色确保在模糊未加载时也有颜色 */
             background: rgba(255, 255, 255, var(--glass-opacity));
-            
-            /* 关键修复：默认移除 backdrop-filter。
-               这能防止页面加载初期、动画过程中出现的卡顿、闪烁或模糊错位。
-            */
-            /* backdrop-filter: blur(var(--glass-blur)) saturate(120%); */ 
-            /* -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%); */
-
+            backdrop-filter: blur(var(--glass-blur)) saturate(120%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
             transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-            isolation: isolate; 
+            transform: translateZ(0); 
+            will-change: transform;
         }
-
-        /* 关键修复：只有当 body 拥有 blur-loaded 类时（即动画结束后），才应用模糊滤镜。
-           这是“JS等DOM生成后再处理”的具体实现。
-        */
-        body.blur-loaded .glass-panel {
-            backdrop-filter: blur(var(--glass-blur)) saturate(120%);
-            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(120%);
-            /* 添加淡入过渡，让模糊效果平滑出现，不突兀 */
-            transition: backdrop-filter 1s ease, -webkit-backdrop-filter 1s ease, border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-        }
-
         .dark .glass-panel {
             background: rgba(0, 0, 0, calc(var(--glass-opacity) + 0.2));
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -258,16 +242,8 @@
         };
 
         const ITEM_VARIANTS = {
-            hidden: { opacity: 0, y: 20, scale: 0.95 }, 
-            visible: { 
-                opacity: 1, 
-                y: 0, 
-                scale: 1,
-                transition: { 
-                    duration: 0.6,
-                    ease: [0.22, 1, 0.36, 1] 
-                } 
-            }
+            hidden: { opacity: 0, scale: 0.6, y: 30 },
+            visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 20 } }
         };
 
         // --- 默认配置 ---
@@ -473,9 +449,8 @@
         };
 
         // --- 组件 ---
-        // 核心修改：在 style 中移除了 transform: 'translateZ(0)' 以修复毛玻璃模糊在动画中丢失的问题
         const GlassCard = React.forwardRef(({ children, className = "", onClick, hoverColor, glassSettings, isDragging, onPointerDown }, ref) => (
-            React.createElement("div", { ref: ref, onPointerDown: onPointerDown, onClick: onClick, className: `glass-panel rounded-[2rem] transition-colors transition-shadow duration-300 ${className} ${isDragging ? 'cursor-grabbing z-[50] ring-4 ring-blue-400/50 shadow-2xl' : 'hover-glow cursor-grab active:cursor-grabbing'}`, style: { '--hover-color': hoverColor, '--glass-opacity': glassSettings?.opacity ?? 0.2, '--glass-blur': (glassSettings?.blur ?? 25) + 'px' } }, children)
+            React.createElement("div", { ref: ref, onPointerDown: onPointerDown, onClick: onClick, className: `glass-panel rounded-[2rem] transition-colors transition-shadow duration-300 ${className} ${isDragging ? 'cursor-grabbing z-[50] ring-4 ring-blue-400/50 shadow-2xl' : 'hover-glow cursor-grab active:cursor-grabbing'}`, style: { '--hover-color': hoverColor, '--glass-opacity': glassSettings?.opacity ?? 0.2, '--glass-blur': (glassSettings?.blur ?? 25) + 'px', transform: 'translateZ(0)', backfaceVisibility: 'visible' } }, children)
         ));
         const CustomCursor = ({ hidden }) => {
             const cursorX = useMotionValue(-100); const cursorY = useMotionValue(-100); const springConfigPC = { damping: 20, stiffness: 400 }; const pcX = useSpring(cursorX, springConfigPC); const pcY = useSpring(cursorY, springConfigPC);
@@ -494,25 +469,7 @@
             return React.createElement(AnimatePresence, null, !shouldHide && React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 }, className: "pointer-events-none z-[9999] fixed inset-0 overflow-hidden !transition-none" }, !isTouch && particles.map(p => React.createElement(motion.div, { key: p.id, initial: { opacity: 0.8, scale: 1, x: p.x, y: p.y }, animate: { opacity: 0, scale: 0, x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 20 }, transition: { duration: 0.6 }, className: "fixed w-2 h-2 rounded-full pointer-events-none !transition-none", style: { backgroundColor: p.color } })), React.createElement(motion.div, { className: "fixed top-0 left-0 pointer-events-none will-change-transform !transition-none", style: { x: isTouch ? cursorX : pcX, y: isTouch ? cursorY : pcY } }, React.createElement("div", { className: "-translate-x-1/2 -translate-y-1/2" }, React.createElement(motion.div, { animate: { scale: isClicking ? 2.5 : (isHoveringInteractive ? 0 : 1), opacity: isHoveringInteractive ? 0 : 1, backgroundColor: isClicking ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.05)", backdropFilter: isClicking ? "blur(0px)" : "blur(4px)", borderColor: isClicking ? "rgba(100, 210, 255, 0.3)" : "rgba(96, 165, 250, 0.8)" }, transition: { type: "spring", stiffness: 400, damping: 25 }, className: "w-12 h-12 rounded-full border-2 shadow-[0_0_15px_rgba(100,210,255,0.5)] flex items-center justify-center overflow-hidden !transition-none" }, React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "absolute top-1 left-2 w-4 h-2 bg-white/60 rounded-full rotate-[-45deg] blur-[1px] !transition-none" }), React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_5px_#3b82f6] !transition-none" }))))));
         };
         const Modal = ({ isOpen, onClose, title, children, glassSettings }) => (
-            React.createElement(AnimatePresence, null, isOpen && React.createElement(React.Fragment, null, 
-                React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: onClose, className: "fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]" }), 
-                // 修复：将容器与动画元素分离。外层 div 负责居中定位（无动画），内层 motion.div 负责弹窗本身的缩放/透明度/毛玻璃渲染
-                React.createElement("div", { className: "fixed inset-0 z-[61] flex items-center justify-center pointer-events-none" },
-                    React.createElement(motion.div, { 
-                        initial: { opacity: 0, scale: 0.9, y: 20 }, 
-                        animate: { opacity: 1, scale: 1, y: 0 }, 
-                        exit: { opacity: 0, scale: 0.9, y: 20 }, 
-                        className: "w-full max-w-md p-6 pointer-events-auto m-4 max-h-[80vh] overflow-y-auto rounded-[2.5rem] shadow-2xl glass-panel no-scrollbar", 
-                        style: { '--glass-opacity': glassSettings?.opacity ?? 0.3, '--glass-blur': (glassSettings?.blur ?? 20) + 'px' } 
-                    }, 
-                        React.createElement("div", { className: "flex justify-between items-center mb-6" }, 
-                            React.createElement("h3", { className: "ui-modal-title text-xl font-black text-slate-800 dark:text-white" }, title), 
-                            React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-white/40 dark:hover:bg-slate-700/40 transition-colors" }, React.createElement(X, { className: "w-5 h-5" }))
-                        ), 
-                        children
-                    )
-                )
-            ))
+            React.createElement(AnimatePresence, null, isOpen && React.createElement(React.Fragment, null, React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, onClick: onClose, className: "fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]" }), React.createElement(motion.div, { initial: { opacity: 0, scale: 0.9, y: 20 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.9, y: 20 }, className: "fixed inset-0 z-[61] flex items-center justify-center pointer-events-none" }, React.createElement("div", { className: "w-full max-w-md p-6 pointer-events-auto m-4 max-h-[80vh] overflow-y-auto rounded-[2.5rem] shadow-2xl glass-panel no-scrollbar", style: { '--glass-opacity': glassSettings?.opacity ?? 0.3, '--glass-blur': (glassSettings?.blur ?? 20) + 'px' } }, React.createElement("div", { className: "flex justify-between items-center mb-6" }, React.createElement("h3", { className: "ui-modal-title text-xl font-black text-slate-800 dark:text-white" }, title), React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-white/40 dark:hover:bg-slate-700/40 transition-colors" }, React.createElement(X, { className: "w-5 h-5" }))), children))))
         );
         const SectionHeader = ({ icon: Icon, title }) => (
             React.createElement("div", { className: "flex items-center gap-2 mb-3 mt-1" }, React.createElement(Icon, { size: 18, className: "text-blue-500" }), React.createElement("label", { className: "block text-base font-bold text-slate-700 dark:text-slate-300 section-title" }, title))
@@ -555,100 +512,14 @@
             const [isEngineHovered, setIsEngineHovered] = useState(false); const [showHistory, setShowHistory] = useState(false); const [draggingId, setDraggingId] = useState(null); const [isSearchFocused, setIsSearchFocused] = useState(false);
             const dragStartPos = useRef({ x: 0, y: 0 }); const lastSwapTime = useRef(0); const constraintsRef = useRef(null); const fileInputRef = useRef(null); const bgFileInputRef = useRef(null); const engineHoverTimer = useRef(null); const searchInputRef = useRef(null);
 
-            // --- 核心修复：背景图片加载状态管理 ---
-            // 如果有背景图片，初始状态设为未加载(false)，否则设为已加载(true)
-            const [isBgLoaded, setIsBgLoaded] = useState(() => {
-                const saved = localStorage.getItem('bg_image');
-                return !saved; 
-            });
-
-            // 监听背景图片加载，实现“先加载好背景再播放动画”
-            useEffect(() => {
-                if (!bgImage) {
-                    setIsBgLoaded(true);
-                    return;
-                }
-                
-                // 重置状态
-                setIsBgLoaded(false);
-                
-                const img = new Image();
-                img.src = bgImage;
-                
-                const handleLoad = () => {
-                    setIsBgLoaded(true);
-                };
-
-                img.onload = handleLoad;
-                img.onerror = handleLoad; // 即使失败也继续显示内容
-                
-                // 3秒超时保底，防止图片加载过慢导致页面一直空白
-                const timer = setTimeout(handleLoad, 3000);
-                
-                return () => {
-                    clearTimeout(timer);
-                    img.onload = null;
-                    img.onerror = null;
-                };
-            }, [bgImage]);
-
-
-            // --- 核心修复：延迟开启毛玻璃效果 ---
-            // 等待背景加载完毕 + 动画入场结束后，再开启 backdrop-filter，避免卡顿
-            useEffect(() => {
-                if (isBgLoaded) {
-                    // 背景加载完，动画开始。等待动画结束(约800ms)后再开启模糊
-                    const timer = setTimeout(() => {
-                        document.body.classList.add('blur-loaded');
-                    }, 800);
-                    return () => clearTimeout(timer);
-                } else {
-                    document.body.classList.remove('blur-loaded');
-                }
-            }, [isBgLoaded]);
-
-
             useEffect(() => { if (searchInputRef.current && layoutSettings.searchPos === 'center') { setTimeout(() => searchInputRef.current.focus(), 500); } }, [layoutSettings.searchPos]);
             
             // 新增：尝试将浏览器标签页图标变成圆形 (保持不变)
             useEffect(() => {
                 const setCircularFavicon = (url) => {
-                    // 1. 无论如何先设置一个默认图标，保证页面不会因为 JS 错误而没有图标
-                    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-                    link.type = 'image/png';
-                    link.rel = 'icon';
-                    link.href = url; // 先设置原始 URL
-                    if (!link.parentNode) document.head.appendChild(link);
-
-                    // 2. 尝试使用 Canvas 裁剪圆形
-                    const canvas = document.createElement('canvas'); 
-                    canvas.width = 64; 
-                    canvas.height = 64; 
-                    const ctx = canvas.getContext('2d'); 
-                    const img = new Image(); 
-                    
-                    // 关键：配置跨域属性，这可能引发报错，所以需要后续的错误处理
-                    img.crossOrigin = "Anonymous"; 
-                    img.src = url;
-                    
-                    img.onload = () => { 
-                        try {
-                            ctx.beginPath(); 
-                            ctx.arc(32, 32, 32, 0, 2 * Math.PI); 
-                            ctx.clip(); 
-                            ctx.drawImage(img, 0, 0, 64, 64); 
-                            link.href = canvas.toDataURL(); 
-                        } catch (e) {
-                            // 如果 Canvas 导出失败（例如 Tainted Canvas），静默失败，保留原图标
-                            console.warn("Favicon circular crop failed, using original.");
-                        }
-                    };
-
-                    // 关键修复：捕获图片加载错误（如 CORS 阻止），防止控制台爆红
-                    img.onerror = () => {
-                        // 加载失败，不做任何操作，上面的 link.href 已经设置了原图作为兜底
-                        console.log("Favicon load failed (CORS?), using original.");
-                    };
+                    const link = document.querySelector("link[rel*='icon']") || document.createElement('link'); link.type = 'image/png'; link.rel = 'icon';
+                    const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64; const ctx = canvas.getContext('2d'); const img = new Image(); img.crossOrigin = "Anonymous"; img.src = url;
+                    img.onload = () => { ctx.beginPath(); ctx.arc(32, 32, 32, 0, 2 * Math.PI); ctx.clip(); ctx.drawImage(img, 0, 0, 64, 64); link.href = canvas.toDataURL(); if (!link.parentNode) document.head.appendChild(link); };
                 };
                 setCircularFavicon(DEFAULT_AVATAR);
             }, []);
@@ -851,7 +722,7 @@
             return React.createElement("div", { className: "min-h-screen relative flex flex-col overflow-x-hidden" },
                 React.createElement(CustomCursor),
                 // 背景层
-                React.createElement("div", { className: "fixed inset-0 z-0", style: { transform: 'translateZ(0)' } }, // 关键修改：这里加 translateZ(0) 是修复闪烁的核心
+                React.createElement("div", { className: "fixed inset-0 z-0" },
                     bgImage && React.createElement(motion.div, { key: bgImage, initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 1 }, className: "absolute inset-0 bg-cover bg-center bg-no-repeat", style: { backgroundImage: `url(${bgImage})` } }),
                     React.createElement("div", { className: `absolute inset-0 backdrop-blur-[1px] transition-colors duration-500 ${ bgImage ? 'bg-black/20 dark:bg-black/70' : 'bg-white/10 dark:bg-slate-950/30' }` }),
                     React.createElement("div", { className: "absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[100px] animate-float", style: { backgroundColor: colors.blobLeft, opacity: bgImage ? 0.4 : 0.2 } }),
@@ -863,8 +734,8 @@
                     React.createElement("div", { className: "w-px h-6 bg-white/50 dark:bg-white/20 mx-1" }),
                     React.createElement("div", { className: "flex items-center gap-2" }, React.createElement("button", { onClick: toggleTheme, className: "p-2 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-700/50 hover:text-blue-500 dark:hover:text-blue-400 transition-all" }, theme === 'light' ? React.createElement(Moon, { size: 18 }) : React.createElement(Sun, { size: 18 })), React.createElement("button", { onClick: () => setShowSettings(true), className: "p-2 rounded-full text-slate-700 dark:text-slate-200 hover:bg-white/30 dark:hover:bg-slate-700/50 hover:text-blue-500 dark:hover:text-blue-400 transition-all" }, React.createElement(Settings, { size: 18 })))
                 ),
-                // 主要内容区 - 核心修改：animate 属性绑定到 isBgLoaded，只有背景加载完成后才触发 visible
-                React.createElement(motion.main, { variants: CONTAINER_VARIANTS, initial: "hidden", animate: isBgLoaded ? "visible" : "hidden", className: `relative z-10 flex-1 w-full max-w-[95%] xl:max-w-[1800px] mx-auto px-4 md:px-6 pb-16 flex flex-col items-center ${layoutSettings.searchPos === 'center' ? 'justify-center min-h-screen pt-20 pb-10' : 'justify-start pt-32 md:pt-24'}` },
+                // 主要内容区
+                React.createElement(motion.main, { variants: CONTAINER_VARIANTS, initial: "hidden", animate: "visible", className: `relative z-10 flex-1 w-full max-w-[95%] xl:max-w-[1800px] mx-auto px-4 md:px-6 pb-16 flex flex-col items-center ${layoutSettings.searchPos === 'center' ? 'justify-center min-h-screen pt-20 pb-10' : 'justify-start pt-32 md:pt-24'}` },
                     // 标题
                     layoutSettings.showTitle && React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "text-center mb-12 select-none" },
                         React.createElement(motion.div, { key: theme, className: "flex flex-wrap justify-center items-center gap-1 md:gap-3 cursor-default", onDragStart: (e) => e.preventDefault() },
