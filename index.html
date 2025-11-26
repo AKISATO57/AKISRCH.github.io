@@ -240,7 +240,8 @@
             Search, Plus, Trash2, Settings, X, Moon, Sun, 
             LayoutGrid, Image as ImageIcon, RotateCcw,
             Check, Sparkles, Clock, Palette, Sliders, GripHorizontal, Edit3, Upload, Link as LinkIcon,
-            Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet, Eye, User, Frame, MousePointer
+            Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet, Eye, User, Frame, MousePointer,
+            Clipboard, Copy, Scissors, ArrowRightCircle
         } from 'lucide-react';
 
         // --- 全局动画参数 ---
@@ -354,6 +355,98 @@
             }
             const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
             return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        };
+
+        // --- Context Menu Component ---
+        const CustomContextMenu = ({ visible, x, y, onClose, onPaste, onPasteAndSearch, onCopy, hasSelection, onSelectAll }) => {
+            const menuRef = useRef(null);
+
+            useEffect(() => {
+                const handleClickOutside = (e) => {
+                    if (menuRef.current && !menuRef.current.contains(e.target)) {
+                        onClose();
+                    }
+                };
+                if (visible) {
+                    document.addEventListener('mousedown', handleClickOutside);
+                    document.addEventListener('scroll', onClose, { capture: true }); 
+                }
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                    document.removeEventListener('scroll', onClose, { capture: true });
+                };
+            }, [visible, onClose]);
+
+            // Adjust position to stay in viewport
+            const style = useMemo(() => {
+                if (!visible) return { display: 'none' };
+                let left = x;
+                let top = y;
+                const width = 240; // Approx width
+                const height = 200; // Approx height
+                if (left + width > window.innerWidth) left = window.innerWidth - width - 10;
+                if (top + height > window.innerHeight) top = window.innerHeight - height - 10;
+                
+                return { 
+                    position: 'fixed', 
+                    left: left, 
+                    top: top, 
+                    zIndex: 99999 
+                };
+            }, [visible, x, y]);
+
+            if (!visible) return null;
+
+            return createPortal(
+                React.createElement(motion.div, {
+                    initial: { opacity: 0, scale: 0.95 },
+                    animate: { opacity: 1, scale: 1 },
+                    exit: { opacity: 0, scale: 0.95 },
+                    transition: { duration: 0.1 },
+                    ref: menuRef,
+                    style: style,
+                    className: "w-60 bg-[#2b2d31]/90 dark:bg-[#1a1b1e]/90 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl py-1.5 flex flex-col overflow-hidden text-sm font-medium text-gray-200 select-none"
+                },
+                    // Header/Title (Optional, simulating "Input" context)
+                    React.createElement("div", { className: "px-3 py-1.5 text-xs text-gray-500 font-bold uppercase tracking-wider border-b border-white/5 mb-1" }, "编辑"),
+                    
+                    React.createElement("button", { 
+                        onClick: onCopy, 
+                        disabled: !hasSelection,
+                        className: `flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors ${!hasSelection ? 'opacity-40 cursor-not-allowed' : ''}` 
+                    },
+                        React.createElement("div", { className: "flex items-center gap-2" }, React.createElement(Copy, { size: 14 }), "复制"),
+                        React.createElement("span", { className: "text-xs opacity-50" }, "Ctrl+C")
+                    ),
+                    
+                    React.createElement("button", { 
+                        onClick: onPaste,
+                        className: "flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors"
+                    },
+                        React.createElement("div", { className: "flex items-center gap-2" }, React.createElement(Clipboard, { size: 14 }), "粘贴"),
+                        React.createElement("span", { className: "text-xs opacity-50" }, "Ctrl+V")
+                    ),
+
+                    React.createElement("button", { 
+                        onClick: onPasteAndSearch,
+                        className: "flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors group"
+                    },
+                        React.createElement("div", { className: "flex items-center gap-2" }, React.createElement(ArrowRightCircle, { size: 14, className: "text-pink-400 group-hover:text-white" }), "粘贴并搜索"),
+                    ),
+
+                    React.createElement("div", { className: "h-px bg-white/10 my-1 mx-1" }),
+
+                    React.createElement("button", { 
+                        onClick: onSelectAll,
+                        className: "flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors"
+                    },
+                        React.createElement("div", { className: "flex items-center gap-2" }, "全选"),
+                        React.createElement("span", { className: "text-xs opacity-50" }, "Ctrl+A")
+                    )
+
+                ),
+                document.body
+            );
         };
 
         // --- Color Picker Components ---
@@ -472,10 +565,8 @@
         ));
         
         // --- Custom Cursor ---
-        // 核心修复：此处已恢复为"副本"中的代码，使用 spring 物理效果，使光标更 Q 弹跟手
         const CustomCursor = ({ enableCursor, enableParticles }) => {
             const cursorX = useMotionValue(-100); const cursorY = useMotionValue(-100); 
-            // RESTORED: Spring Physics for cursor movement to make it "q-bouncy"
             const springConfigPC = { damping: 20, stiffness: 400 }; 
             const pcX = useSpring(cursorX, springConfigPC); 
             const pcY = useSpring(cursorY, springConfigPC);
@@ -485,7 +576,6 @@
                  let idCounter = 0;
                  const onMouseOver = (e) => { const target = e.target; const isInteractive = target.tagName === 'A' || target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'LABEL' || target.closest('a') || target.closest('button') || target.classList.contains('cursor-pointer') || window.getComputedStyle(target).cursor === 'pointer'; setIsHoveringInteractive(isInteractive); };
                  const onMouseMove = (e) => { setIsTouch(false); cursorX.set(e.clientX); cursorY.set(e.clientY); const now = Date.now(); if (enableParticles && now - lastParticleTime.current > 40 && Math.random() > 0.7) { lastParticleTime.current = now; const id = idCounter++; setParticles(prev => [...prev.slice(-10), { id, x: e.clientX, y: e.clientY, color: Math.random() > 0.5 ? '#64d2ff' : '#ff7eb3' }]); setTimeout(() => setParticles(prev => prev.filter(p => p.id !== id)), 600); } };
-                 // Added touch move for responsiveness
                  const onTouchMove = (e) => { setIsTouch(true); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
                  const onTouchStart = (e) => { setIsTouch(true); setIsClicking(true); if (e.touches.length > 0) { cursorX.set(e.touches[0].clientX); cursorY.set(e.touches[0].clientY); }};
                  const onMouseDown = () => setIsClicking(true); const onMouseUp = () => setIsClicking(false); const onTouchEnd = () => setIsClicking(false);
@@ -503,7 +593,6 @@
             
             return React.createElement(AnimatePresence, null, !isTouch && React.createElement(motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 }, className: "pointer-events-none z-[9999] fixed inset-0 overflow-hidden !transition-none" }, 
                 enableParticles && particles.map(p => React.createElement(motion.div, { key: p.id, initial: { opacity: 0.8, scale: 1, x: p.x, y: p.y }, animate: { opacity: 0, scale: 0, x: p.x + (Math.random() - 0.5) * 20, y: p.y + (Math.random() - 0.5) * 20 }, transition: { duration: 0.6 }, className: "fixed w-2 h-2 rounded-full pointer-events-none !transition-none", style: { backgroundColor: p.color } })),
-                // FIX: Use pcX/pcY for spring effect
                 enableCursor && React.createElement(motion.div, { className: "fixed top-0 left-0 pointer-events-none will-change-transform !transition-none", style: { x: isTouch ? cursorX : pcX, y: isTouch ? cursorY : pcY } }, React.createElement("div", { className: "-translate-x-1/2 -translate-y-1/2" }, React.createElement(motion.div, { animate: { scale: isClicking ? 2.5 : (isHoveringInteractive ? 0 : 1), opacity: isHoveringInteractive ? 0 : 1, backgroundColor: isClicking ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.05)", backdropFilter: isClicking ? "blur(0px)" : "blur(4px)", borderColor: isClicking ? "rgba(100, 210, 255, 0.3)" : "rgba(96, 165, 250, 0.8)" }, transition: { type: "spring", stiffness: 400, damping: 25 }, className: "w-12 h-12 rounded-full border-2 shadow-[0_0_15px_rgba(100,210,255,0.5)] flex items-center justify-center overflow-hidden !transition-none" }, React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "absolute top-1 left-2 w-4 h-2 bg-white/60 rounded-full rotate-[-45deg] blur-[1px] !transition-none" }), React.createElement(motion.div, { animate: { opacity: isClicking ? 0 : 1 }, className: "w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_5px_#3b82f6] !transition-none" }))))));
         };
 
@@ -572,9 +661,89 @@
             const isAutoFocusing = useRef(false);
             const [isBgLoaded, setIsBgLoaded] = useState(() => { const saved = localStorage.getItem('bg_image'); return !saved; });
 
+            // --- Context Menu State ---
+            const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, hasSelection: false });
+
+            const handleContextMenu = useCallback((e) => {
+                e.preventDefault();
+                const hasSelection = window.getSelection().toString().length > 0;
+                setContextMenu({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY,
+                    hasSelection: hasSelection
+                });
+            }, []);
+
+            const closeContextMenu = useCallback(() => {
+                setContextMenu(prev => ({ ...prev, visible: false }));
+            }, []);
+
+            const handleContextPaste = async () => {
+                closeContextMenu();
+                searchInputRef.current?.focus();
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        setSearchQuery(prev => prev + text);
+                    }
+                } catch (err) {
+                    console.error("Clipboard permission denied or error:", err);
+                    alert("请在弹出的提示中允许访问剪贴板，以便使用右键粘贴功能。");
+                }
+            };
+
+            const handleContextPasteAndSearch = async () => {
+                closeContextMenu();
+                searchInputRef.current?.focus();
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        setSearchQuery(text); // Replace or append? Usually replace for "Paste & Go"
+                        executeSearch(text);
+                    }
+                } catch (err) {
+                    console.error("Clipboard permission denied or error:", err);
+                    alert("请在弹出的提示中允许访问剪贴板，以便使用此功能。");
+                }
+            };
+
+            const handleContextCopy = () => {
+                closeContextMenu();
+                const selection = window.getSelection().toString();
+                if (selection) {
+                    navigator.clipboard.writeText(selection).catch(err => console.error("Copy failed", err));
+                }
+            };
+
+            const handleSelectAll = () => {
+                closeContextMenu();
+                searchInputRef.current?.select();
+            }
+
+            
             useEffect(() => { if (!bgImage) { setIsBgLoaded(true); return; } setIsBgLoaded(false); const img = new Image(); img.src = bgImage; const handleLoad = () => { setIsBgLoaded(true); }; img.onload = handleLoad; img.onerror = handleLoad; const timer = setTimeout(handleLoad, 3000); return () => { clearTimeout(timer); img.onload = null; img.onerror = null; }; }, [bgImage]);
-            useEffect(() => { if (isBgLoaded) { const timer = setTimeout(() => { document.body.classList.add('blur-loaded'); }, 800); return () => clearTimeout(timer); } else { document.body.classList.remove('blur-loaded'); } }, [isBgLoaded]);
-            useEffect(() => { if (searchInputRef.current && layoutSettings.searchPos === 'center') { isAutoFocusing.current = true; setTimeout(() => { if (searchInputRef.current) { searchInputRef.current.focus(); } setTimeout(() => { isAutoFocusing.current = false; }, 200); }, 500); } }, [layoutSettings.searchPos]);
+            useEffect(() => { if (isBgLoaded) { const timer = setTimeout(() => { document.body.classList.add('blur-loaded'); }, 1800); return () => clearTimeout(timer); } else { document.body.classList.remove('blur-loaded'); } }, [isBgLoaded]);
+            
+            useEffect(() => {
+                const tryFocus = () => {
+                    if (searchInputRef.current) {
+                        isAutoFocusing.current = true;
+                        searchInputRef.current.focus();
+                        setTimeout(() => { isAutoFocusing.current = false; }, 200);
+                    }
+                };
+                
+                tryFocus();
+                const timer1 = setTimeout(tryFocus, 100);
+                const timer2 = setTimeout(tryFocus, 500); 
+                
+                return () => {
+                    clearTimeout(timer1);
+                    clearTimeout(timer2);
+                };
+            }, [layoutSettings.searchPos]);
+
             useEffect(() => { const setCircularFavicon = (url) => { const link = document.getElementById('dynamic-favicon') || document.createElement('link'); link.id = 'dynamic-favicon'; link.type = 'image/png'; link.rel = 'icon'; link.href = url; if (!link.parentNode) document.head.appendChild(link); }; setCircularFavicon(faviconUrl); }, [faviconUrl]);
             
             const getTextStyle = (color) => { if (!color) return {}; if (color.includes('gradient')) { return { backgroundImage: color, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', color: 'transparent', textShadow: 'none' }; } return { color: color, textShadow: '0 2px 10px rgba(0,0,0,0.2)' }; };
@@ -598,6 +767,7 @@
             const handleLinkClick = (link) => { const newLinks = links.map(l => { if (l.id === link.id) { return { ...l, visitCount: (l.visitCount || 0) + 1 }; } return l; }); saveLinks(newLinks); window.open(link.url, '_blank'); setShowHistory(false); };
             const executeSearch = (query, forceEngine = false) => { if (!query.trim()) return; if (!forceEngine) { const qLower = query.trim().toLowerCase(); const linkMatch = links.find(l => l.title.toLowerCase() === qLower); const historyMatch = history.find(h => h.query.toLowerCase() === qLower); const linkScore = linkMatch ? (linkMatch.visitCount || 0) * 5 : -1; const historyScore = historyMatch ? historyMatch.count : -1; if (linkMatch && linkScore >= historyScore) { handleLinkClick(linkMatch); return; } } const newHistory = [...history]; const existingIndex = newHistory.findIndex(h => h.query === query); if (existingIndex > -1) { newHistory[existingIndex].count += 1; newHistory[existingIndex].lastUsed = Date.now(); } else { newHistory.push({ query: query, count: 1, lastUsed: Date.now() }); } newHistory.sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed); const trimmedHistory = newHistory.slice(0, 50); setHistory(trimmedHistory); localStorage.setItem('search_history_v2', JSON.stringify(trimmedHistory)); const isUrl = (str) => { if (/^https?:\/\//i.test(str)) return true; if (/^localhost:\d+$/i.test(str)) return true; if (/^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(str)) return true; if (/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/.test(str)) return true; return false; }; if (isUrl(query) && !forceEngine) { let finalUrl = query; if (!/^https?:\/\//i.test(query)) { finalUrl = 'http://' + query; } window.open(finalUrl, '_blank'); } else { window.open(searchEngine.url + encodeURIComponent(query), '_blank'); } setShowHistory(false); searchInputRef.current?.blur(); };
             const handleSearch = (e) => { e.preventDefault(); if (topPrediction && topPrediction.length > searchQuery.length) { executeSearch(topPrediction); } else { executeSearch(searchQuery); } };
+            
             const handleSuggestionClick = (item) => { if (item.type === 'link') { handleLinkClick(item); } else { setSearchQuery(item.value); executeSearch(item.value, true); } setShowHistory(false); };
             const deleteHistoryItem = (itemQuery, e) => { e.stopPropagation(); const newHistory = history.filter(h => h.query !== itemQuery); setHistory(newHistory); localStorage.setItem('search_history_v2', JSON.stringify(newHistory)); };
             const clearHistory = () => { setHistory([]); localStorage.removeItem('search_history_v2'); };
@@ -637,23 +807,30 @@
 
             const isCenterMode = layoutSettings.searchPos === 'center' || !layoutSettings.showCollections;
             const currentGridTop = isCenterMode ? (layoutSettings.gridTop_center || 0) : (layoutSettings.gridTop_top || 0);
-
-            // --- 核心逻辑优化区域 (保留最新的联动逻辑) ---
             
-            // 1. 智能阈值：如果当前间距大于 260px (约等于下拉菜单高度)，则认为"够远"，采用绝对定位(Float)，不推挤卡片。
-            //    否则，认为"太近"，采用静态定位(Static)，推挤卡片。
             const GAP_THRESHOLD = 260; 
             const shouldFloat = currentGridTop > GAP_THRESHOLD;
-
-            // 2. 动态间距：如果处于"联动模式" (Push/Static) 且搜索框展开，
-            //    我们临时将卡片的 marginTop 设为一个较小的值 (24px)，
-            //    这样卡片就会"吸附"在下拉菜单底部，而不是保留原本可能很大的间距(currentGridTop)。
-            //    当搜索框收起时，恢复原本的 currentGridTop。
             const isHistoryOpen = showHistory && suggestions.length > 0;
             const dynamicGridTop = (isHistoryOpen && !shouldFloat) ? Math.min(currentGridTop, 24) : currentGridTop;
 
-            return React.createElement("div", { className: "min-h-screen relative flex flex-col overflow-x-hidden" },
+            return React.createElement("div", { className: "min-h-screen relative flex flex-col overflow-x-hidden", onContextMenu: (e) => {
+                // Optional: Global Context Menu? Or just on search bar?
+                // Let's keep it global for consistency if desired, but for now specific to search area is safer.
+                // e.preventDefault(); 
+            }},
                 React.createElement(CustomCursor, { enableCursor: visualSettings.enableCursor, enableParticles: visualSettings.enableParticles }), 
+                React.createElement(CustomContextMenu, { 
+                    visible: contextMenu.visible, 
+                    x: contextMenu.x, 
+                    y: contextMenu.y, 
+                    onClose: closeContextMenu,
+                    onPaste: handleContextPaste,
+                    onPasteAndSearch: handleContextPasteAndSearch,
+                    onCopy: handleContextCopy,
+                    hasSelection: contextMenu.hasSelection,
+                    onSelectAll: handleSelectAll
+                }),
+
                 // 背景层
                 React.createElement("div", { className: "fixed inset-0 z-0", style: { transform: 'translateZ(0)' } }, 
                     bgImage && React.createElement(motion.div, { key: bgImage, initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 1 }, className: "absolute inset-0 bg-cover bg-center bg-no-repeat", style: { backgroundImage: `url(${bgImage})` } }),
@@ -681,8 +858,8 @@
                                 React.createElement(motion.span, { className: `text-5xl md:text-7xl font-black tracking-tight inline-block font-sans ${ colors.title2 ? '' : (bgImage ? 'text-white shadow-text-super' : 'text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-400 shadow-text-gradient') }`, style: getTextStyle(colors.title2), whileHover: { scale: 1.05, rotate: 2 }, whileTap: { scale: 0.95, rotate: -3 }, transition: { type: "spring", stiffness: 300 } }, layoutSettings.text2 || '灯塔')
                             )
                         ),
-                        // 搜索栏
-                        React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "w-full max-w-2xl relative mb-8 z-50 flex flex-col items-center" },
+                        // 搜索栏 (Attached Context Menu Trigger Here)
+                        React.createElement(motion.div, { variants: ITEM_VARIANTS, className: "w-full max-w-2xl relative mb-8 z-50 flex flex-col items-center", onContextMenu: handleContextMenu },
                             React.createElement(motion.div, { className: "relative w-full", whileHover: { scale: 1.01 }, transition: { type: "spring", stiffness: 400, damping: 25 } },
                                 React.createElement("div", { className: "absolute top-0 left-0 right-0 h-[64px] bg-gradient-to-r from-blue-400 to-pink-400 rounded-[2rem] blur-2xl opacity-20 hover:opacity-40 transition-opacity duration-500 pointer-events-none" }),
                                 React.createElement("form", { onSubmit: handleSearch, className: "relative flex items-center glass-panel rounded-[2rem] p-2 z-50 transition-all duration-300 hover:shadow-search-hover border border-white/20 dark:border-white/5", style: { '--glass-opacity': glassSettings.opacity, '--glass-blur': glassSettings.blur + 'px', height: '64px' } },
