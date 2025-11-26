@@ -238,10 +238,10 @@
         import { motion, useSpring, useMotionValue, AnimatePresence } from 'framer-motion';
         import { 
             Search, Plus, Trash2, Settings, X, Moon, Sun, 
-            LayoutGrid, Image as ImageIcon, RotateCcw,
+            LayoutGrid, Image as ImageIcon, RotateCcw, RotateCw,
             Check, Sparkles, Clock, Palette, Sliders, GripHorizontal, Edit3, Upload, Link as LinkIcon,
             Monitor, Layout, Type, ArrowUp, MousePointer2, ChevronDown, Droplet, Eye, User, Frame, MousePointer,
-            Clipboard, Copy, Scissors, ArrowRightCircle
+            Clipboard, Copy, Scissors, ArrowRightCircle, CheckSquare
         } from 'lucide-react';
 
         // --- 全局动画参数 ---
@@ -357,8 +357,13 @@
             return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
         };
 
-        // --- Context Menu Component ---
-        const CustomContextMenu = ({ visible, x, y, onClose, onPaste, onPasteAndSearch, onCopy, hasSelection, onSelectAll }) => {
+        // --- Improved Context Menu Component ---
+        const CustomContextMenu = ({ 
+            visible, x, y, onClose, 
+            onPaste, onPasteAndSearch, onCopy, onCut, onDelete, onSelectAll,
+            onUndo, onRedo, canUndo, canRedo,
+            hasSelection, glassSettings 
+        }) => {
             const menuRef = useRef(null);
 
             useEffect(() => {
@@ -383,7 +388,7 @@
                 let left = x;
                 let top = y;
                 const width = 240; // Approx width
-                const height = 200; // Approx height
+                const height = 350; // Increased height for more items
                 if (left + width > window.innerWidth) left = window.innerWidth - width - 10;
                 if (top + height > window.innerHeight) top = window.innerHeight - height - 10;
                 
@@ -391,58 +396,73 @@
                     position: 'fixed', 
                     left: left, 
                     top: top, 
-                    zIndex: 99999 
+                    zIndex: 99999,
+                    '--glass-opacity': (glassSettings?.opacity || 0.2) + 0.4,
+                    '--glass-blur': (glassSettings?.blur || 25) + 'px'
                 };
-            }, [visible, x, y]);
+            }, [visible, x, y, glassSettings]);
 
             if (!visible) return null;
 
+            const MenuItem = ({ onClick, icon: Icon, label, shortcut, disabled, destructive }) => (
+                React.createElement("button", {
+                    onClick: onClick, 
+                    disabled: disabled,
+                    className: `flex items-center justify-between px-3 py-2 mx-1 rounded-lg transition-all
+                        ${disabled 
+                            ? 'opacity-40 cursor-not-allowed' 
+                            : destructive
+                                ? 'hover:bg-red-500/10 hover:text-red-500 text-slate-700 dark:text-slate-200'
+                                : 'hover:bg-blue-500/10 hover:text-blue-500 text-slate-700 dark:text-slate-200'
+                        }`
+                },
+                    React.createElement("div", { className: "flex items-center gap-2.5" },
+                        Icon && React.createElement(Icon, { size: 15, strokeWidth: 2.5 }),
+                        React.createElement("span", { className: "text-sm font-bold" }, label)
+                    ),
+                    shortcut && React.createElement("span", { className: "text-[10px] opacity-50 font-bold font-mono" }, shortcut)
+                )
+            );
+
             return createPortal(
                 React.createElement(motion.div, {
-                    initial: { opacity: 0, scale: 0.95 },
-                    animate: { opacity: 1, scale: 1 },
-                    exit: { opacity: 0, scale: 0.95 },
-                    transition: { duration: 0.1 },
+                    initial: { opacity: 0, scale: 0.8, filter: "blur(10px)" },
+                    animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
+                    exit: { opacity: 0, scale: 0.8, filter: "blur(10px)" },
+                    transition: { type: "spring", stiffness: 400, damping: 25 },
                     ref: menuRef,
                     style: style,
-                    className: "w-60 bg-[#2b2d31]/90 dark:bg-[#1a1b1e]/90 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl py-1.5 flex flex-col overflow-hidden text-sm font-medium text-gray-200 select-none"
+                    className: "glass-panel w-56 rounded-2xl shadow-2xl py-2 flex flex-col overflow-hidden select-none border border-white/20 dark:border-white/10",
+                    onMouseDown: (e) => e.preventDefault() // Prevents focus loss on input when clicking menu
                 },
-                    // Header/Title (Optional, simulating "Input" context)
-                    React.createElement("div", { className: "px-3 py-1.5 text-xs text-gray-500 font-bold uppercase tracking-wider border-b border-white/5 mb-1" }, "编辑"),
+                    // Header
+                    React.createElement("div", { className: "px-4 py-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest mb-1 ml-1" }, "菜单"),
                     
-                    React.createElement("button", { 
-                        onClick: onCopy, 
-                        disabled: !hasSelection,
-                        className: `flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors ${!hasSelection ? 'opacity-40 cursor-not-allowed' : ''}` 
-                    },
-                        React.createElement("div", { className: "flex items-center gap-2" }, React.createElement(Copy, { size: 14 }), "复制"),
-                        React.createElement("span", { className: "text-xs opacity-50" }, "Ctrl+C")
-                    ),
-                    
-                    React.createElement("button", { 
-                        onClick: onPaste,
-                        className: "flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors"
-                    },
-                        React.createElement("div", { className: "flex items-center gap-2" }, React.createElement(Clipboard, { size: 14 }), "粘贴"),
-                        React.createElement("span", { className: "text-xs opacity-50" }, "Ctrl+V")
+                    React.createElement("div", { className: "flex items-center px-1 mb-1" },
+                        React.createElement("button", { 
+                            onClick: onUndo, 
+                            disabled: !canUndo,
+                            className: `flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors ${!canUndo ? 'opacity-30 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200'}`
+                        }, React.createElement(RotateCcw, { size: 16 }), React.createElement("span", { className: "text-[10px] mt-1 font-bold" }, "撤销")),
+                        React.createElement("div", { className: "w-px h-8 bg-slate-200 dark:bg-white/10 mx-1" }),
+                        React.createElement("button", { 
+                            onClick: onRedo, 
+                            disabled: !canRedo,
+                            className: `flex-1 flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors ${!canRedo ? 'opacity-30 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200'}`
+                        }, React.createElement(RotateCw, { size: 16 }), React.createElement("span", { className: "text-[10px] mt-1 font-bold" }, "重做"))
                     ),
 
-                    React.createElement("button", { 
-                        onClick: onPasteAndSearch,
-                        className: "flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors group"
-                    },
-                        React.createElement("div", { className: "flex items-center gap-2" }, React.createElement(ArrowRightCircle, { size: 14, className: "text-pink-400 group-hover:text-white" }), "粘贴并搜索"),
-                    ),
+                    React.createElement("div", { className: "h-px bg-slate-200 dark:bg-white/10 my-1 mx-2" }),
 
-                    React.createElement("div", { className: "h-px bg-white/10 my-1 mx-1" }),
+                    React.createElement(MenuItem, { onClick: onCut, icon: Scissors, label: "剪切", shortcut: "Ctrl+X", disabled: !hasSelection }),
+                    React.createElement(MenuItem, { onClick: onCopy, icon: Copy, label: "复制", shortcut: "Ctrl+C", disabled: !hasSelection }),
+                    React.createElement(MenuItem, { onClick: onPaste, icon: Clipboard, label: "粘贴", shortcut: "Ctrl+V" }),
+                    React.createElement(MenuItem, { onClick: onPasteAndSearch, icon: ArrowRightCircle, label: "粘贴并搜索", shortcut: "Go" }),
+                    React.createElement(MenuItem, { onClick: onDelete, icon: Trash2, label: "删除", destructive: true, disabled: !hasSelection }),
 
-                    React.createElement("button", { 
-                        onClick: onSelectAll,
-                        className: "flex items-center justify-between px-3 py-2 mx-1 rounded hover:bg-blue-600/80 hover:text-white transition-colors"
-                    },
-                        React.createElement("div", { className: "flex items-center gap-2" }, "全选"),
-                        React.createElement("span", { className: "text-xs opacity-50" }, "Ctrl+A")
-                    )
+                    React.createElement("div", { className: "h-px bg-slate-200 dark:bg-white/10 my-1 mx-2" }),
+
+                    React.createElement(MenuItem, { onClick: onSelectAll, icon: CheckSquare, label: "全选", shortcut: "Ctrl+A" })
 
                 ),
                 document.body
@@ -621,6 +641,20 @@
                 return SEARCH_ENGINES[0];
             });
             const [searchQuery, setSearchQuery] = useState('');
+            
+            // --- Undo/Redo Stacks ---
+            const [undoStack, setUndoStack] = useState([]);
+            const [redoStack, setRedoStack] = useState([]);
+
+            // Helper to update search with history tracking
+            const updateSearchWithHistory = (newValue) => {
+                if (newValue !== searchQuery) {
+                    setUndoStack(prev => [...prev, searchQuery]);
+                    setRedoStack([]); // Clear redo stack on new input
+                    setSearchQuery(newValue);
+                }
+            };
+
             const [links, setLinks] = useState(() => {
                 const storedLinks = localStorage.getItem('my_links');
                 return storedLinks ? JSON.parse(storedLinks) : DEFAULT_LINKS;
@@ -661,7 +695,7 @@
             const isAutoFocusing = useRef(false);
             const [isBgLoaded, setIsBgLoaded] = useState(() => { const saved = localStorage.getItem('bg_image'); return !saved; });
 
-            // --- Context Menu State ---
+            // --- Context Menu State & Handlers ---
             const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, hasSelection: false });
 
             const handleContextMenu = useCallback((e) => {
@@ -685,7 +719,8 @@
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text) {
-                        setSearchQuery(prev => prev + text);
+                        // Insert at cursor position would be ideal, but for simplicity append or replace
+                        updateSearchWithHistory(searchQuery + text);
                     }
                 } catch (err) {
                     console.error("Clipboard permission denied or error:", err);
@@ -699,12 +734,11 @@
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text) {
-                        setSearchQuery(text); // Replace or append? Usually replace for "Paste & Go"
+                        updateSearchWithHistory(text); // Usually Paste & Go replaces content
                         executeSearch(text);
                     }
                 } catch (err) {
                     console.error("Clipboard permission denied or error:", err);
-                    alert("请在弹出的提示中允许访问剪贴板，以便使用此功能。");
                 }
             };
 
@@ -716,11 +750,63 @@
                 }
             };
 
+            const handleContextCut = () => {
+                closeContextMenu();
+                const selection = window.getSelection().toString();
+                if (selection) {
+                    navigator.clipboard.writeText(selection).then(() => {
+                        // Crude implementation: remove selection from query
+                        // This removes ALL occurrences if simple replace, or relies on exact string match
+                        // For a controlled input, getting exact cursor indices is better but complex here.
+                        // Simplified: clear input if full select, or try to replace.
+                        if (selection === searchQuery) {
+                            updateSearchWithHistory('');
+                        } else {
+                            // Basic string replacement
+                            updateSearchWithHistory(searchQuery.replace(selection, '')); 
+                        }
+                    });
+                }
+            };
+
+            const handleContextDelete = () => {
+                closeContextMenu();
+                const selection = window.getSelection().toString();
+                if (selection) {
+                     if (selection === searchQuery) {
+                        updateSearchWithHistory('');
+                    } else {
+                        updateSearchWithHistory(searchQuery.replace(selection, '')); 
+                    }
+                }
+            };
+
             const handleSelectAll = () => {
                 closeContextMenu();
                 searchInputRef.current?.select();
             }
 
+            const handleContextUndo = () => {
+                // closeContextMenu(); // Keep menu open for rapid undo? Maybe close is better.
+                if (undoStack.length > 0) {
+                    const prev = undoStack[undoStack.length - 1];
+                    const newUndo = undoStack.slice(0, -1);
+                    setRedoStack(curr => [...curr, searchQuery]);
+                    setUndoStack(newUndo);
+                    setSearchQuery(prev);
+                }
+            };
+
+            const handleContextRedo = () => {
+                // closeContextMenu();
+                if (redoStack.length > 0) {
+                    const next = redoStack[redoStack.length - 1];
+                    const newRedo = redoStack.slice(0, -1);
+                    setUndoStack(curr => [...curr, searchQuery]);
+                    setRedoStack(newRedo);
+                    setSearchQuery(next);
+                }
+            };
             
             useEffect(() => { if (!bgImage) { setIsBgLoaded(true); return; } setIsBgLoaded(false); const img = new Image(); img.src = bgImage; const handleLoad = () => { setIsBgLoaded(true); }; img.onload = handleLoad; img.onerror = handleLoad; const timer = setTimeout(handleLoad, 3000); return () => { clearTimeout(timer); img.onload = null; img.onerror = null; }; }, [bgImage]);
             useEffect(() => { if (isBgLoaded) { const timer = setTimeout(() => { document.body.classList.add('blur-loaded'); }, 1800); return () => clearTimeout(timer); } else { document.body.classList.remove('blur-loaded'); } }, [isBgLoaded]);
@@ -763,7 +849,7 @@
             
             useEffect(() => { const handleClickOutside = (event) => { if (engineMenuRef.current && !engineMenuRef.current.contains(event.target)) { setIsEngineMenuOpen(false); } }; if (isEngineMenuOpen) { document.addEventListener('mousedown', handleClickOutside); } return () => { document.removeEventListener('mousedown', handleClickOutside); }; }, [isEngineMenuOpen]);
             
-            const handleDrag = (e, info, id) => { if (Date.now() - lastSwapTime.current < 400) return; let clientX, clientY; if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } if (clientX === undefined) { clientX = info.point.x; clientY = info.point.y; } const elements = document.elementsFromPoint(clientX, clientY); let targetId = null; for (const el of elements) { const sortableEl = el.closest('[data-sortable-id]'); if (sortableEl) { const foundId = sortableEl.getAttribute('data-sortable-id'); if (foundId && foundId !== id) { targetId = foundId; break; } } } if (targetId) { if (targetId === 'add-btn') { const fromIndex = links.findIndex(l => l.id === id); if (fromIndex === links.length - 1) return; const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.push(item); saveLinks(newLinks); lastSwapTime.current = Date.now(); return; } const fromIndex = links.findIndex(l => l.id === id); const toIndex = links.findIndex(l => l.id === targetId); if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) { const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.splice(toIndex, 0, item); saveLinks(newLinks); lastSwapTime.current = Date.now(); } } };
+            const handleDrag = (e, info, id) => { if (Date.now() - lastSwapTime.current < 400) return; let clientX, clientY; if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; } if (clientX === undefined) { clientX = info.point.x; clientY = info.point.y; } const elements = document.elementsFromPoint(clientX, clientY); let targetId = null; for (const el of elements) { const sortableEl = el.closest('[data-sortable-id]'); if (sortableEl) { const foundId = sortableEl.getAttribute('data-sortable-id'); if (foundId && foundId !== id) { targetId = foundId; break; } } } if (targetId) { if (targetId === 'add-btn') { const fromIndex = links.findIndex(l => l.id === id); if (fromIndex === links.length - 1) return; const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.push(item); saveLinks(newLinks); lastSwapTime.current = Date.now(); return; } const fromIndex = links.findIndex(l => l.id === id); const toIndex = links.findIndex(l => l.id === targetId); if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) { const newLinks = [...links]; const [item] = newLinks.splice(fromIndex, 1); newLinks.splice(toIndex, 0, item); saveLinks(newLinks); lastSwapTime.current = Date.now(); } } };
             const handleLinkClick = (link) => { const newLinks = links.map(l => { if (l.id === link.id) { return { ...l, visitCount: (l.visitCount || 0) + 1 }; } return l; }); saveLinks(newLinks); window.open(link.url, '_blank'); setShowHistory(false); };
             const executeSearch = (query, forceEngine = false) => { if (!query.trim()) return; if (!forceEngine) { const qLower = query.trim().toLowerCase(); const linkMatch = links.find(l => l.title.toLowerCase() === qLower); const historyMatch = history.find(h => h.query.toLowerCase() === qLower); const linkScore = linkMatch ? (linkMatch.visitCount || 0) * 5 : -1; const historyScore = historyMatch ? historyMatch.count : -1; if (linkMatch && linkScore >= historyScore) { handleLinkClick(linkMatch); return; } } const newHistory = [...history]; const existingIndex = newHistory.findIndex(h => h.query === query); if (existingIndex > -1) { newHistory[existingIndex].count += 1; newHistory[existingIndex].lastUsed = Date.now(); } else { newHistory.push({ query: query, count: 1, lastUsed: Date.now() }); } newHistory.sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed); const trimmedHistory = newHistory.slice(0, 50); setHistory(trimmedHistory); localStorage.setItem('search_history_v2', JSON.stringify(trimmedHistory)); const isUrl = (str) => { if (/^https?:\/\//i.test(str)) return true; if (/^localhost:\d+$/i.test(str)) return true; if (/^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(str)) return true; if (/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/.test(str)) return true; return false; }; if (isUrl(query) && !forceEngine) { let finalUrl = query; if (!/^https?:\/\//i.test(query)) { finalUrl = 'http://' + query; } window.open(finalUrl, '_blank'); } else { window.open(searchEngine.url + encodeURIComponent(query), '_blank'); } setShowHistory(false); searchInputRef.current?.blur(); };
             const handleSearch = (e) => { e.preventDefault(); if (topPrediction && topPrediction.length > searchQuery.length) { executeSearch(topPrediction); } else { executeSearch(searchQuery); } };
@@ -827,8 +913,15 @@
                     onPaste: handleContextPaste,
                     onPasteAndSearch: handleContextPasteAndSearch,
                     onCopy: handleContextCopy,
+                    onCut: handleContextCut,
+                    onDelete: handleContextDelete,
                     hasSelection: contextMenu.hasSelection,
-                    onSelectAll: handleSelectAll
+                    onSelectAll: handleSelectAll,
+                    onUndo: handleContextUndo,
+                    onRedo: handleContextRedo,
+                    canUndo: undoStack.length > 0,
+                    canRedo: redoStack.length > 0,
+                    glassSettings: glassSettings
                 }),
 
                 // 背景层
@@ -896,7 +989,7 @@
                                             type: "text", 
                                             ref: searchInputRef, 
                                             value: searchQuery, 
-                                            onChange: (e) => setSearchQuery(e.target.value), 
+                                            onChange: (e) => updateSearchWithHistory(e.target.value), 
                                             onFocus: () => { setIsSearchFocused(true); if (!isAutoFocusing.current) setShowHistory(true); }, 
                                             onClick: () => setShowHistory(true),
                                             onBlur: () => { setIsSearchFocused(false); setTimeout(() => setShowHistory(false), 200); }, 
